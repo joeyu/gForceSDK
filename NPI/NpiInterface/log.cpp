@@ -670,7 +670,7 @@ void Log::Analyze_LE_Hci_Event(PUINT8 buf, UINT8 size)
 			Sleep(500);
 		}
 	}
-	if (del_flag) {
+	if (del_flag)  {
 		delete buf;
 	}
 }

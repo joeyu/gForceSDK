@@ -36,7 +36,7 @@ public:
 	OYM_STATUS ReadCharacteristicValue(OYM_UINT16 conn_handle, OYM_UINT16 att_handle);
 	OYM_STATUS FindCharacteristicDescriptor(OYM_UINT16 conn_handle, OYM_UINT16 start_handle, OYM_UINT16 end_handle);
 	OYM_STATUS WriteCharacVlaue(OYM_UINT16 conn_handle, OYM_UINT16 att_handle, OYM_PUINT8 data, OYM_UINT8 len);
-
+	OYM_STATUS ExchangeMTUsize(OYM_UINT16 conn_handle, OYM_UINT16 mtu_size);
 	//call this function to register callback function to process event.
 	OYM_STATUS RegisterCallback(OYM_CallBack *callback);
 	
@@ -78,5 +78,5 @@ private:
 
 #define EVENT_MASK_INTERNAL_DEVICE_FOUND		(BIT0 << 16)
 #define EVENT_MASK_INTERNAL_SCAN_FINISHED		(BIT1 << 16)
-
+#define EVENT_MASK_ATT_WRITE_RESPONSE			(BIT2 << 16)
 #endif

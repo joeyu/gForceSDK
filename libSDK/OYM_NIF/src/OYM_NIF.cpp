@@ -1,7 +1,7 @@
 #include"stdafx.h"
 #include "OYM_NIF.h"
 #include <oym_types.h>
-#define COM_PORT_NUM 3
+#define COM_PORT_NUM 18
 
 /* OYM_NIF as a abstract of NPI_Interface, upper level get OYM_NIF instant, which is able send command to  
 lower layer, register callback function to receiver event. the event is masked by eventmask.
@@ -127,8 +127,12 @@ void OYM_NPI_Interface::Run()
 					event = EVENT_MASK_ATT_NOTI_MSG;
 					break;
 
+				case ATT_WRITE_MSG:   // attWrite_response
+					LOGDEBUG("ATT_WRITE_RESPONSE_MSG \n");
+					event = EVENT_MASK_ATT_WRITE_RESPONSE;
+					break;
 				default:
-					printf("NPI_EVT£ºErr msg type=%4X !\n", msg.message);
+					printf("NPI_EVT++++++++++++++++£ºErr msg type=%4X !\n", msg.message);
 					break;
 			}
 
@@ -328,5 +332,12 @@ OYM_STATUS OYM_NPI_Interface::WriteCharacVlaue(OYM_UINT16 conn_handle, OYM_UINT1
 {
 	OYM_BOOL status = OYM_FAIL;
 	status = mCommand->GATT_WriteCharValue(conn_handle, att_handle, data, len);
+	return (status == OYM_TRUE) ? OYM_SUCCESS : OYM_FAIL;
+}
+
+OYM_STATUS OYM_NPI_Interface::ExchangeMTUsize(OYM_UINT16 conn_handle, OYM_UINT16 mtu_size)
+{
+	OYM_BOOL  status = OYM_FAIL;
+	status = mCommand->GATT_ExchangeMTU(conn_handle, mtu_size);
 	return (status == OYM_TRUE) ? OYM_SUCCESS : OYM_FAIL;
 }

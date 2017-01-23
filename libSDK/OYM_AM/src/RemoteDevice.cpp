@@ -796,7 +796,11 @@ OYM_STATUS OYM_RemoteDevice::W4GattReadCharcValueStateProcessMessage(OYM_DEVICE_
 				LOGERROR("OYM_DEVICE_EVENT_ATT_READ_BY_INFO_MSG with error status = %d!!!\n", status);
 			}
 		}
-
+		case OYM_DEVICE_EVENT_ATT_WRITE_REPONSE:
+		{
+				mInterface->ExchangeMTUsize(mHandle, 150);
+				break;
+		}
 		default:
 			break;
 	}
@@ -868,7 +872,7 @@ OYM_STATUS OYM_RemoteDevice::NextCharacterateristic()
 
 OYM_STATUS OYM_RemoteDevice::DiscoveryDescriptor()
 {
-	LOGERROR("start to DiscoveryDescriptor!!!\n");
+	LOGDEBUG("start to DiscoveryDescriptor!!!\n");
 	OYM_PRISERVICE* service = mService.FindPriSvcbyIndex(mService.mCurrentPriService);
 	OYM_CHARACTERISTIC* characteristic = service->FindCharacteristicbyIndex(service->mCurrentCharateristic);
 	OYM_UINT16 start_handle = (characteristic->mValueHandle + 1);
@@ -988,7 +992,11 @@ OYM_STATUS OYM_RemoteDevice::WriteClientCharacteristicConfiguration()
 			if (descriptor != NULL)
 			{
 				LOGDEBUG("found!! handle is 0x%04x \n", descriptor->mHandle);
-				mInterface->WriteCharacVlaue(mHandle, descriptor->mHandle, data, 2);
+				if (descriptor->mHandle == 0x0039) {
+					LOGDEBUG("found!! handle is 0x%04x,start write CCC in 0x%04x \n", descriptor->mHandle);
+					mInterface->WriteCharacVlaue(mHandle, descriptor->mHandle, data, 2);
+				}
+				
 			}
 			service->mCurrentCharateristic++;
 		}

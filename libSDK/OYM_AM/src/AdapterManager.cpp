@@ -224,7 +224,12 @@ OYM_STATUS OYM_AdapterManager::OnEvent(OYM_UINT32 event, OYM_PUINT8 data, OYM_UI
 			handle_offset = 1;
 			break;
 		}
-
+		case EVENT_MASK_ATT_WRITE_RESPONSE:
+		{
+			message = OYM_DEVICE_EVENT_ATT_WRITE_REPONSE;
+			handle_offset = 1;
+			break;
+		}
 		default:
 			break;
 	}
