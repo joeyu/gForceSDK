@@ -131,6 +131,7 @@ void OYM_NPI_Interface::Run()
 					LOGDEBUG("ATT_WRITE_RESPONSE_MSG \n");
 					event = EVENT_MASK_ATT_WRITE_RESPONSE;
 					break;
+
 				default:
 					printf("NPI_EVT++++++++++++++++£ºErr msg type=%4X !\n", msg.message);
 					break;

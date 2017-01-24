@@ -7,6 +7,7 @@ OYM_AdapterManager::OYM_AdapterManager() :OYM_CallBack(ADAPTER_MANAGER_EVENT)
 	mInterface = new OYM_NPI_Interface;
 	mLog = new OYM_Log(MODUAL_TAG_AM, sizeof(MODUAL_TAG_AM));
 	mDS = new OYM_Discovery_Service(mInterface, this);
+	mPTgForceDataFunction = NULL;
 }
 
 OYM_AdapterManager::~OYM_AdapterManager()
@@ -72,6 +73,13 @@ OYM_STATUS OYM_AdapterManager::StopScan()
 	{
 		return OYM_FAIL;
 	}
+}
+
+//register callback about get gForceData
+OYM_STATUS  OYM_AdapterManager::RegistGforceData(PTGFORCEDATA p_DataFun)
+{
+	mPTgForceDataFunction = p_DataFun;
+	return OYM_SUCCESS;
 }
 
 OYM_STATUS OYM_AdapterManager::Connect(OYM_PUINT8 addr, UINT8 addr_type)
@@ -193,6 +201,12 @@ OYM_STATUS OYM_AdapterManager::OnEvent(OYM_UINT32 event, OYM_PUINT8 data, OYM_UI
 			for (OYM_UINT16 i = 0; i < length; i++)
 			{
 				LOGDEBUG("the notificationdata of [%d]th bytes is 0x%02x \n", i, data[i]);
+			}
+
+			//add callback function to process rawdata
+			if (mPTgForceDataFunction)
+			{
+				mPTgForceDataFunction(data, length);
 			}
 			break;
 		}

@@ -14,6 +14,8 @@
 #define ADAPTER_MANAGER_ATT_EVENT  ( EVENT_MASK_ATT_WRITE_RESPONSE|EVENT_MASK_ATT_NOTI_MSG | EVENT_MASK_ATT_READ_RESP_MSG | EVENT_MASK_ATT_ERROR_MSG | EVENT_MASK_ATT_READ_BY_GRP_TYPE_MSG | EVENT_MASK_ATT_READ_BY_TYPE_MSG | EVENT_MASK_ATT_READ_BY_INFO_MSG)
 #define ADAPTER_MANAGER_EVENT (0x0100FD | ADAPTER_MANAGER_ATT_EVENT)
 
+typedef void(*PTGFORCEDATA)(OYM_PUINT8 pData, OYM_UINT16 length);
+
 class OYM_AdapterManager: public OYM_CallBack
 {
 public:
@@ -30,7 +32,7 @@ public:
 	OYM_STATUS OnConnect(OYM_PUINT8 data, OYM_UINT16 length);
 
 	OYM_STATUS OnEvent(OYM_UINT32 event, OYM_PUINT8 data, OYM_UINT16 length);
-
+	OYM_STATUS RegistGforceData(PTGFORCEDATA p_DataFun);
 	OYM_STATUS OnScanResult(OYM_PUINT8 data, OYM_UINT16 length)
 	{
 		return OYM_FAIL;
@@ -44,5 +46,7 @@ private:
 	OYM_Discovery_Service* mDS;
 
 	list<OYM_RemoteDevice*> mAvailabeDevice;
+
+	PTGFORCEDATA mPTgForceDataFunction;
 };
 #endif

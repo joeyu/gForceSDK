@@ -416,8 +416,8 @@ void Log::Analyze_ATT_Event(PUINT8 buf, UINT8 size)
 	case ATT_EXECUTE_WRITE_EVENT:
 		msg_type = ATT_EXECUTE_WRITE_MSG;
 		break;
-	case ATT_HANDLE_VALUE_NOTI:
-		msg_type = ATT_HANDLE_VALUE_NOTI_MSG;
+	case ATT_HANDLE_VALUE_NOTI:                             // notify message
+		msg_type = ATT_HANDLE_VALUE_NOTI_MSG;               
 		break;
 	case ATT_HANDLE_VALUE_IND:
 		msg_type = ATT_HANDLE_VALUE_IND_MSG;
