@@ -66,6 +66,17 @@ int _tmain(int charc, char* argv[]) {
 void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 {
 	//add data to process gForce rawdata
+	static OYM_UINT32 lostPackage = 0;
+	static BOOL b_GetFirstPackage = FALSE;
+	static OYM_UINT8 s_packageId = 0;
+	if (b_GetFirstPackage == FALSE)
+	{
+		b_GetFirstPackage = TRUE;
+		s_packageId = data[8];
+	} else{
+		lostPackage = data[8] - ((s_packageId + 1) % 256) + lostPackage;
+		s_packageId = data[8];
+	}
 	if (b_file)
 	{
 		char buf[1000];
@@ -86,8 +97,8 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 			fwrite(buf, sizeof(OYM_UINT8), totaloffset, inputfile);
 			fclose(inputfile);
 		}
-		printf("collecting EMG data...........................\n");
-		OutputDebugString(L"processGforceRawData \n ");
+		printf("collecting EMG data..........................:%d,Lost package number:%u\n",data[8],lostPackage);
+		//OutputDebugString(L"processGforceRawData \n ");
 	}
 	else if(b_information == FALSE){
 		b_information = TRUE;
