@@ -85,7 +85,7 @@ void Log::Analyze_RX(PUINT8 buf, UINT8 size)
 	cf.crTextColor = RGB(0, 0, 255);//Blue
 	cf.yHeight = 200;
 #endif
-
+#if 0
 	GetLocalTime(&sys);
 	Log_printf(L"<Rx> -");
 	Log_printf(L"%02d:%02d:%02d.%03d\n", sys.wHour, sys.wMinute, sys.wSecond,
@@ -93,14 +93,15 @@ void Log::Analyze_RX(PUINT8 buf, UINT8 size)
 	Log_printf(L"-Type			: 0x%02X\n", pEvt->type);
 	Log_printf(L"-EventCode		: 0x%02X\n", pEvt->event_code);
 	Log_printf(L"-Data Length		: 0x%02X\n", pEvt->len);
-
+#endif
 	if (pEvt->event_code == HCI_LE_EVENT_CODE) {
 		Analyze_LE_Hci_Event(buf, size);
 	} else {
 		event = pEvt->event_lo + (pEvt->event_hi << 8);
+#if 0
 		Log_printf(L"Event			: 0x%04X\n", event);
 		Log_printf(L"Status			: 0x%02X\n", pEvt->status);
-
+#endif 
 		switch (event & 0xFF80) {
 		case HCI_EXT_LL_EVENT:
 			Analyze_LL_Event(buf, size);
@@ -434,7 +435,10 @@ void Log::Analyze_ATT_Event(PUINT8 buf, UINT8 size)
 	default:
 		break;
 	}
-	Sprintf_DumpRx(buf, size);
+	if (msg_type != ATT_HANDLE_VALUE_NOTI_MSG)
+	{
+		Sprintf_DumpRx(buf, size);
+	}
 	if (msg_type != 0) {
 		while (!PostThreadMessage(evtThreadID, msg_type, (WPARAM)&pEvt->status,
 		                          pEvt->len - 2)) {

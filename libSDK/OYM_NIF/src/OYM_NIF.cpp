@@ -1,7 +1,7 @@
 #include"stdafx.h"
 #include "OYM_NIF.h"
 #include <oym_types.h>
-#define COM_PORT_NUM 18
+#define COM_PORT_NUM 11
 
 /* OYM_NIF as a abstract of NPI_Interface, upper level get OYM_NIF instant, which is able send command to  
 lower layer, register callback function to receiver event. the event is masked by eventmask.

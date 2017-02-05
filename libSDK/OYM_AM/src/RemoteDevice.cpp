@@ -156,6 +156,7 @@ OYM_STATUS OYM_RemoteDevice::W4ConnStateProcessMessage(OYM_DEVICE_EVENT event, O
 			status = mInterface->Authenticate(mHandle);
 			if (status == OYM_SUCCESS)
 			{
+				mInterface->ExchangeMTUsize(mHandle, 150);
 				mState = OYM_DEVICE_STATE_W4SECU;
 			}
 			break;
@@ -796,9 +797,10 @@ OYM_STATUS OYM_RemoteDevice::W4GattReadCharcValueStateProcessMessage(OYM_DEVICE_
 				LOGERROR("OYM_DEVICE_EVENT_ATT_READ_BY_INFO_MSG with error status = %d!!!\n", status);
 			}
 		}
+			break;
 		case OYM_DEVICE_EVENT_ATT_WRITE_REPONSE:
 		{
-				mInterface->ExchangeMTUsize(mHandle, 150);
+				
 				break;
 		}
 		default:
