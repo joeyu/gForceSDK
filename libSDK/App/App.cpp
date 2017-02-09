@@ -11,7 +11,8 @@
 #include "dos.h"
 
 //using namespace System;
-
+#define EMGDATA_PACKAGEID_INDEX		8
+#define EMGDATA_INDEX				9
 FILE* inputfile = NULL;
 BOOL b_file = FALSE;
 BOOL b_information = FALSE;
@@ -66,17 +67,20 @@ int _tmain(int charc, char* argv[]) {
 void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 {
 	//add data to process gForce rawdata
-	static OYM_UINT32 lostPackage = 0;
 	static BOOL b_GetFirstPackage = FALSE;
 	static OYM_UINT8 s_packageId = 0;
+	static OYM_UINT32 s_ReceivePackageNum = 0;
+	static OYM_UINT32 lostPackage = 0;
+	s_ReceivePackageNum++;
 	if (b_GetFirstPackage == FALSE)
 	{
 		b_GetFirstPackage = TRUE;
-		s_packageId = data[8];
+		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	} else{
-		lostPackage = data[8] - ((s_packageId + 1) % 256) + lostPackage;
-		s_packageId = data[8];
+		lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId -1) % 256  + lostPackage;
+		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
+	float LostRate = ((lostPackage == 0) ? 0 : ((float)lostPackage / (float)s_ReceivePackageNum));
 	if (b_file)
 	{
 		char buf[1000];
@@ -84,20 +88,18 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		OYM_INT total = 1000;
 		OYM_INT offset = 0;
 		OYM_INT totaloffset = 0;
-		for (int i = 0; i < length; i++)
+		for (int i = EMGDATA_INDEX; i < length; i++)
 		{
-			offset = sprintf_s((char*)ptr + totaloffset, total - totaloffset, "%02x ", data[i]);
+			offset = sprintf_s((char*)ptr + totaloffset, total - totaloffset, "%c", data[i]);
 			totaloffset = totaloffset + offset;
 		}
-		buf[totaloffset] = '\n';
-		totaloffset += 1;
 		errno_t err = fopen_s(&inputfile, str_filename, "a");
 		if (err == 0)
 		{
 			fwrite(buf, sizeof(OYM_UINT8), totaloffset, inputfile);
 			fclose(inputfile);
 		}
-		printf("collecting EMG data..........................:%d,Lost package number:%u\n",data[8],lostPackage);
+		printf("collecting EMG data:%d,   Lost package number:%u,    Total package number:%u,    Lost package Rate:%f.....\n", data[8], lostPackage,s_ReceivePackageNum, LostRate);
 		//OutputDebugString(L"processGforceRawData \n ");
 	}
 	else if(b_information == FALSE){
