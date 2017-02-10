@@ -181,6 +181,31 @@ OYM_STATUS OYM_NPI_Interface::Init()
 	return OYM_SUCCESS;
 }
 
+
+OYM_STATUS OYM_NPI_Interface::Init(UINT8 port)
+{
+	mCommand = new NPI_CMD(port);
+	if (mCommand == NULL)
+	{
+		return OYM_FAIL;
+	}
+
+	/*create the event thread to receive message from controller.*/
+	mEvtThread = new CThread(this);
+	mEvtThread->Start();
+	mEvtThread->Join(100);
+	mEvtThreadID = mEvtThread->GetThreadID();
+
+	if (false == (mCommand->Connect(mEvtThreadID)))
+	{
+		delete mCommand;
+		return OYM_FAIL;
+	}
+
+	return OYM_SUCCESS;
+}
+
+
 OYM_STATUS OYM_NPI_Interface::Deinit()
 {
 	//no need to close com port??

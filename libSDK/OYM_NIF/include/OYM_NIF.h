@@ -20,6 +20,7 @@ public:
 	OYM_VOID Run();
 	OYM_NPI_Interface();
 	OYM_STATUS Init();
+	OYM_STATUS Init(UINT8 port);
 	OYM_STATUS Deinit();
 
 	OYM_STATUS InitDevice();

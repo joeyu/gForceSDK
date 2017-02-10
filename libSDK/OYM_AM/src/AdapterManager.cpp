@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "AdapterManager.h"
 #include "RemoteDevice.h"
+#include "DiscoveryService.h"
+#include "OYM_Log.h"
+#include "OYM_NIF.h"
+//#include "OYM_CallBack.h"
+
+#define ADAPTER_MANAGER_ATT_EVENT  ( EVENT_MASK_ATT_WRITE_RESPONSE|EVENT_MASK_ATT_NOTI_MSG | EVENT_MASK_ATT_READ_RESP_MSG | EVENT_MASK_ATT_ERROR_MSG | EVENT_MASK_ATT_READ_BY_GRP_TYPE_MSG | EVENT_MASK_ATT_READ_BY_TYPE_MSG | EVENT_MASK_ATT_READ_BY_INFO_MSG)
+#define ADAPTER_MANAGER_EVENT (0x0100FD | ADAPTER_MANAGER_ATT_EVENT)
 
 OYM_AdapterManager::OYM_AdapterManager() :OYM_CallBack(ADAPTER_MANAGER_EVENT)
 {
@@ -8,6 +15,7 @@ OYM_AdapterManager::OYM_AdapterManager() :OYM_CallBack(ADAPTER_MANAGER_EVENT)
 	mLog = new OYM_Log(MODUAL_TAG_AM, sizeof(MODUAL_TAG_AM));
 	mDS = new OYM_Discovery_Service(mInterface, this);
 	mPTgForceDataFunction = NULL;
+	mScanFinishFlag = FALSE;
 }
 
 OYM_AdapterManager::~OYM_AdapterManager()
@@ -44,6 +52,33 @@ OYM_STATUS OYM_AdapterManager::Init()
 	return result;
 }
 
+OYM_STATUS OYM_AdapterManager::Init(OYM_UINT8 portNum)
+{
+	OYM_STATUS result = OYM_FAIL;
+
+	if (mInterface != NULL)
+	{
+		result = mInterface->Init(portNum);
+	}
+	else
+	{
+		return result;
+	}
+
+	if (result == OYM_SUCCESS)
+	{
+		//register to receive event form NIF
+		mInterface->RegisterCallback(this);
+		mInterface->InitDevice();
+	}
+
+	if (mDS != NULL)
+	{
+		result = mDS->Init();
+	}
+
+	return result;
+}
 OYM_STATUS OYM_AdapterManager::Deinit()
 {
 	return OYM_SUCCESS;
@@ -51,6 +86,7 @@ OYM_STATUS OYM_AdapterManager::Deinit()
 
 OYM_STATUS OYM_AdapterManager::StartScan()
 {
+	mScanFinishFlag = FALSE;
 	if (mDS != NULL)
 	{
 		//start to scan
@@ -108,14 +144,30 @@ OYM_STATUS OYM_AdapterManager::OnScanFinished()
 	OYM_RemoteDevice *device;
 	LOGDEBUG("OnScanFinished... \n");
 	LOGDEBUG("found device number is %d \n", mAvailabeDevice.size());
+	mScanFinishFlag = TRUE;
 	if (mAvailabeDevice.size() != 0)
 	{
-		device = mAvailabeDevice.front();
+		device = mAvailabeDevice.front();   //chose the first device to connect
 		result = device->Connect();
 	}
 	return result;
 }
 
+OYM_UINT8 OYM_AdapterManager::WaitForScanFinished(OYM_UINT mils)
+{
+	if (mils <= 10){
+		mils = 10;
+	}
+	for (unsigned long i = 0; i < mils*200; i++)
+	{
+		Sleep(5);   // delay 5ms ,free cpu
+		if (mScanFinishFlag)
+		{
+			return mAvailabeDevice.size();
+		}					
+	}
+	return mAvailabeDevice.size();
+}
 OYM_STATUS OYM_AdapterManager::OnConnect(OYM_PUINT8 data, OYM_UINT16 length)
 {
 	OYM_STATUS result = OYM_FAIL;

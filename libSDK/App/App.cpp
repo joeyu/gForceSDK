@@ -13,26 +13,38 @@
 //using namespace System;
 #define EMGDATA_PACKAGEID_INDEX		8
 #define EMGDATA_INDEX				9
+#define FILE_NAME_LENGTH			100
 FILE* inputfile = NULL;
 BOOL b_file = FALSE;
-BOOL b_information = FALSE;
+volatile BOOL b_information = FALSE;
 char str_filename[100];
 void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
 
 int _tmain(int charc, char* argv[]) {
 	OYM_STATUS status;
+	UINT8 comNum;
+	printf("Please Enter COM number:");
+	scanf_s("%u", &comNum);
 	OYM_AdapterManager* am = new OYM_AdapterManager();
-	status = am->Init();
+	status = am->Init(comNum);
 	if (!OYM_SUCCEEDED)
 	{
 		return OYM_FAIL;
 	}
 	am->RegistGforceData(ProcessGforceData);
-	status = am->StartScan();
-	if (!OYM_SUCCEEDED)
+	while (1)
 	{
-		return OYM_FAIL;
-		printf("main thread! status = %d\n", status);
+		status = am->StartScan();
+		if (!OYM_SUCCEEDED)
+		{
+			return OYM_FAIL;
+			printf("main thread! status = %d\n", status);
+		}
+		OYM_UINT8  num = am->WaitForScanFinished(10);  //wait for scan finished and if find wanted device,it will break
+		if (num > 0)
+		{
+			break;
+		}
 	}
 	while (!b_information);  //wait for notify data message
 	while (1) {
@@ -42,25 +54,56 @@ int _tmain(int charc, char* argv[]) {
 		{
 			printf("\nAfter gForce is worn on forearm properly, please enter Y:");
 			char confirmdata = _getch();
+			
+			//char confirmdata;
+			//gets_s(&confirmdata, 1);
 			if (confirmdata == 'y' || confirmdata == 'Y')
 			{
+				printf("Y\n");
 				break;
 			}
+			else {
+				if (confirmdata == 'X')
+				{
+					return 1;
+				}
+			}
+			
 		}
-		
-		printf("\nPlease Enter filename:");
-		gets_s(str_filename);
-		b_file = TRUE;
 		while (1)
 		{
-			if (_getch() == 'Z')
+			printf("Please Enter filename:");
+			gets_s(str_filename, FILE_NAME_LENGTH);
+			OYM_UINT length = strlen(str_filename);
+			OYM_UINT tmp_index = 0;
+			if (length > 0)
+			{
+				while (length > 0 && (str_filename[tmp_index++] == ' '));
+				if (tmp_index < length)
+				{
+					b_file = TRUE;
+					break;
+				}
+				else{
+					printf("File name can not be empty!!!!!!!!!\n");
+				}
+			}
+			memset(str_filename, '\0', 100);
+		}
+		while (1)
+		{
+			OYM_INT getNum = _getch();
+			if (getNum == 'Z'){
 				break;
+			}
+			else if (getNum == 'X'){
+
+				return 1;
+			}
 		}
 		b_file = FALSE;
-		memset(str_filename, '\0', 100);
-		//Sleep(5000);
-		//printf("main thread!\n");
 	}
+	return 1;
 }
 
 
