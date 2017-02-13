@@ -15,7 +15,8 @@ OYM_AdapterManager::OYM_AdapterManager() :OYM_CallBack(ADAPTER_MANAGER_EVENT)
 	mLog = new OYM_Log(MODUAL_TAG_AM, sizeof(MODUAL_TAG_AM));
 	mDS = new OYM_Discovery_Service(mInterface, this);
 	mPTgForceDataFunction = NULL;
-	mScanFinishFlag = FALSE;
+	//mScanFinishFlag = FALSE;
+	mScanFinishEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 }
 
 OYM_AdapterManager::~OYM_AdapterManager()
@@ -86,7 +87,7 @@ OYM_STATUS OYM_AdapterManager::Deinit()
 
 OYM_STATUS OYM_AdapterManager::StartScan()
 {
-	mScanFinishFlag = FALSE;
+	//mScanFinishFlag = FALSE;
 	if (mDS != NULL)
 	{
 		//start to scan
@@ -144,7 +145,8 @@ OYM_STATUS OYM_AdapterManager::OnScanFinished()
 	OYM_RemoteDevice *device;
 	LOGDEBUG("OnScanFinished... \n");
 	LOGDEBUG("found device number is %d \n", mAvailabeDevice.size());
-	mScanFinishFlag = TRUE;
+	//mScanFinishFlag = TRUE;
+	SetEvent(mScanFinishEvent);
 	if (mAvailabeDevice.size() != 0)
 	{
 		device = mAvailabeDevice.front();   //chose the first device to connect
@@ -153,21 +155,12 @@ OYM_STATUS OYM_AdapterManager::OnScanFinished()
 	return result;
 }
 
-OYM_UINT8 OYM_AdapterManager::WaitForScanFinished(OYM_UINT mils)
+OYM_UINT8 OYM_AdapterManager::WaitForScanFinished()
 {
-	if (mils <= 10){
-		mils = 10;
-	}
-	for (unsigned long i = 0; i < mils*200; i++)
-	{
-		Sleep(5);   // delay 5ms ,free cpu
-		if (mScanFinishFlag)
-		{
-			return mAvailabeDevice.size();
-		}					
-	}
+	DWORD status =  WaitForSingleObject(mScanFinishEvent, 10000);
 	return mAvailabeDevice.size();
 }
+
 OYM_STATUS OYM_AdapterManager::OnConnect(OYM_PUINT8 data, OYM_UINT16 length)
 {
 	OYM_STATUS result = OYM_FAIL;

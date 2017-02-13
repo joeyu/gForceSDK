@@ -33,7 +33,7 @@ public:
 	OYM_STATUS OnDeviceFound(BLE_DEVICE new_device);
 	OYM_STATUS Connect(OYM_PUINT8 addr, UINT8 addr_type);
 	OYM_STATUS OnConnect(OYM_PUINT8 data, OYM_UINT16 length);
-	OYM_UINT8	WaitForScanFinished(OYM_UINT mils);
+	OYM_UINT8	WaitForScanFinished();
 	OYM_STATUS OnEvent(OYM_UINT32 event, OYM_PUINT8 data, OYM_UINT16 length);
 	OYM_STATUS RegistGforceData(PTGFORCEDATA p_DataFun);
 	OYM_STATUS OnScanResult(OYM_PUINT8 data, OYM_UINT16 length)
@@ -49,7 +49,8 @@ private:
 	OYM_Discovery_Service* mDS;
 	list<OYM_RemoteDevice*> mAvailabeDevice;
 	PTGFORCEDATA mPTgForceDataFunction;
-	BOOL mScanFinishFlag;
+	//BOOL mScanFinishFlag;
+	HANDLE mScanFinishEvent;
 
 };
 #endif
