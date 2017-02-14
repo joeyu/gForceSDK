@@ -145,8 +145,8 @@ OYM_STATUS OYM_AdapterManager::OnScanFinished()
 	OYM_RemoteDevice *device;
 	LOGDEBUG("OnScanFinished... \n");
 	LOGDEBUG("found device number is %d \n", mAvailabeDevice.size());
-	//mScanFinishFlag = TRUE;
 	SetEvent(mScanFinishEvent);
+	//mScanFinishFlag = TRUE;
 	if (mAvailabeDevice.size() != 0)
 	{
 		device = mAvailabeDevice.front();   //chose the first device to connect
@@ -157,7 +157,7 @@ OYM_STATUS OYM_AdapterManager::OnScanFinished()
 
 OYM_UINT8 OYM_AdapterManager::WaitForScanFinished()
 {
-	DWORD status =  WaitForSingleObject(mScanFinishEvent, 10000);
+	DWORD status =  WaitForSingleObject(mScanFinishEvent, 15000);
 	return mAvailabeDevice.size();
 }
 

@@ -27,20 +27,21 @@ int _tmain(int charc, char* argv[]) {
 	g_NotifySuccessed = CreateEvent(NULL, TRUE, FALSE, NULL);
 	printf("Please Enter COM number:");
 	scanf_s("%u", &comNum);
+
 	OYM_AdapterManager* am = new OYM_AdapterManager();
 	status = am->Init(comNum);
 	if (!OYM_SUCCEEDED)
 	{
 		return OYM_FAIL;
-	}
+	}	
 	am->RegistGforceData(ProcessGforceData);
 	while (1)
 	{
 		status = am->StartScan();
 		if (!OYM_SUCCEEDED)
 		{
-			return OYM_FAIL;
 			printf("main thread! status = %d\n", status);
+			return OYM_FAIL;
 		}
 		OYM_UINT8  num = am->WaitForScanFinished();  //wait for scan finished ,the max waitfor time is 10s
 		if (num > 0)
