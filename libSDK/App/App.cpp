@@ -25,6 +25,7 @@ int _tmain(int charc, char* argv[]) {
 	UINT8 comNum;
 	g_NotifySuccessed = CreateEvent(NULL, TRUE, FALSE, NULL);
 	InitializeCriticalSection(&mutex);
+	memset(str_filename, 3, 100);
 	printf("Please Enter COM number:");
 	scanf_s("%u", &comNum);
 
@@ -70,17 +71,17 @@ int _tmain(int charc, char* argv[]) {
 			}
 			
 		}
+		getchar();
 		while (1)
-		{
+		{		
 			printf("Please Enter filename:");
-			gets_s(str_filename, FILE_NAME_LENGTH);
-			OYM_UINT length = strlen(str_filename);
-			OYM_UINT tmp_index = 0;
-			if (length > 0)
-			{
-				while (length > 0 && (str_filename[tmp_index++] == ' '));
-				if (tmp_index < length)
-				{
+			gets_s(str_filename, sizeof(str_filename)-1);
+			FILE* tmpHandle;
+			errno_t errn = fopen_s(&tmpHandle, str_filename, "ab");
+			if (errn != 0) {
+					printf("file name is wrong!Please enter a new file name\n");
+			} else {
+					fclose(tmpHandle);
 					EnterCriticalSection(&mutex);
 					errno_t err = fopen_s(&inputfile, str_filename, "ab");
 					if (err != 0)
@@ -89,12 +90,7 @@ int _tmain(int charc, char* argv[]) {
 					}
 					LeaveCriticalSection(&mutex);
 					break;
-				}
-				else{
-					printf("File name can not be empty!!!!!!!!!\n");
-				}
-			}
-			memset(str_filename, '\0', 100);
+			}	
 		}
 		while (1)
 		{
