@@ -15,16 +15,16 @@
 #define EMGDATA_INDEX				9
 #define FILE_NAME_LENGTH			100
 FILE* inputfile = NULL;
-BOOL b_file = FALSE;
-volatile BOOL b_information = FALSE;
 HANDLE g_NotifySuccessed;
 char str_filename[100];
+CRITICAL_SECTION mutex;
 void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
 
 int _tmain(int charc, char* argv[]) {
 	OYM_STATUS status;
 	UINT8 comNum;
 	g_NotifySuccessed = CreateEvent(NULL, TRUE, FALSE, NULL);
+	InitializeCriticalSection(&mutex);
 	printf("Please Enter COM number:");
 	scanf_s("%u", &comNum);
 
@@ -81,7 +81,13 @@ int _tmain(int charc, char* argv[]) {
 				while (length > 0 && (str_filename[tmp_index++] == ' '));
 				if (tmp_index < length)
 				{
-					b_file = TRUE;
+					EnterCriticalSection(&mutex);
+					errno_t err = fopen_s(&inputfile, str_filename, "ab");
+					if (err != 0)
+					{
+						printf("open file failure***********************************************************\n");
+					}
+					LeaveCriticalSection(&mutex);
 					break;
 				}
 				else{
@@ -97,13 +103,16 @@ int _tmain(int charc, char* argv[]) {
 				printf("--------please wait five seconds!\n");
 				Sleep(5000);
 				printf("--------It is ok!\n");
+				EnterCriticalSection(&mutex);
+				fclose(inputfile);
+				inputfile = NULL;
+				LeaveCriticalSection(&mutex);
 				break;
 			}
 			else if (getNum == 'X'){
 				return 1;
 			}
 		}
-		b_file = FALSE;
 	}
 	return 1;
 }
@@ -125,19 +134,15 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		printf("*           gForce Connect Succeed!!!!!!          *\n");
 		SetEvent(g_NotifySuccessed);          //set event to notify main 
 	} else {
-		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1)%256))
-		{
-			printf("!!!!!!!!!!!!lost package!!!!!!!!!!!\n");
-		}
 		s_lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId - 1) % 256 + s_lostPackage;
+		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1) % 256))
+		{
+			printf("!!!!!!!!!!!!lost package:%u\n",s_lostPackage);
+		}
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
 
-	float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
-	if (b_file)
-	{
-		char buf[1000];
-		char* ptr = buf;
+		//float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
 		//OYM_INT total = 1000;
 		//OYM_INT offset = 0;
 		//OYM_INT totaloffset = 0;
@@ -147,20 +152,14 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		//	offset = sprintf_s((char*)ptr + totaloffset, total - totaloffset, "%c", data[i]);
 		//	totaloffset = totaloffset + offset;
 		//}
-		errno_t err = fopen_s(&inputfile, str_filename, "ab");
-		if (err == 0)
-		{
-			OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX], sizeof(OYM_UINT8), length - EMGDATA_INDEX, inputfile);
-			if (writeLen != length - EMGDATA_INDEX){
-				printf("some data can not be writed in file!!!!!!!!!!!!!!!!!!!!!!\n");
+			EnterCriticalSection(&mutex);
+			if (inputfile)
+			{
+				OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX], sizeof(OYM_UINT8), length - EMGDATA_INDEX, inputfile);
+				if (writeLen != length - EMGDATA_INDEX){
+					printf("some data can not be writed in file!!!!!!!!!!!!!!!!!!!!!!\n");
+				}
 			}
-			fclose(inputfile);
-		}
-		else
-		{
-			printf("open file failure***********************************************************\n");
-		}
+			LeaveCriticalSection(&mutex);	
 //		printf("collecting EMG data:%d,   Lost package number:%u,    Total package number:%u,    Lost package Rate:%f.....\n", data[8], s_lostPackage, s_ReceivePackageNum, LostRate);
-		//OutputDebugString(L"processGforceRawData \n ");
-	}
 }
