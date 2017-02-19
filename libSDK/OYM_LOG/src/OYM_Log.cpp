@@ -35,27 +35,30 @@ OYM_VOID OYM_Log::GetFileName(OYM_PCHAR filename)
 
 OYM_Log::OYM_Log(OYM_CPCHAR modual_name, OYM_UINT8 length)
 {
-	mTag = (OYM_PCHAR)new char(length);
-	memcpy(mTag, modual_name, length);
+	//mTag = (OYM_PCHAR)new char(length);
+	//memcpy(mTag, modual_name, length);
 
-	mLogLevel = LOG_LEVEL_DEBUG;
+	mLogLevel = LOG_LEVEL_OFF;
 	mReference++;
-
-	if (mReference == 1)
+	if (mLogLevel != LOG_LEVEL_OFF)
 	{
-		GetFileName(mFileName);
-#ifdef WIN32
-		fopen_s(&mLogFile, (const char*)mFileName, "wt+");
-		if (mLogFile == NULL)
+		if (mReference == 1)
 		{
-			printf("open file failed!!!");
-		}
-			
-		//fopen_s(&mLogFile, (const char*)"log.txt", "wt+");
+			GetFileName(mFileName);
+#ifdef WIN32
+			fopen_s(&mLogFile, (const char*)mFileName, "wt+");
+			if (mLogFile == NULL)
+			{
+				printf("open file failed!!!");
+			}
+
+			//fopen_s(&mLogFile, (const char*)"log.txt", "wt+");
 #else
-		mLogFile = fopen(mFileName, "wt+");
+			mLogFile = fopen(mFileName, "wt+");
 #endif
+		}
 	}
+
 }
 
 OYM_Log::~OYM_Log()

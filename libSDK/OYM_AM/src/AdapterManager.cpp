@@ -16,7 +16,7 @@ OYM_AdapterManager::OYM_AdapterManager() :OYM_CallBack(ADAPTER_MANAGER_EVENT)
 	mDS = new OYM_Discovery_Service(mInterface, this);
 	mPTgForceDataFunction = NULL;
 	//mScanFinishFlag = FALSE;
-	mScanFinishEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	mScanFinishEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 }
 
 OYM_AdapterManager::~OYM_AdapterManager()

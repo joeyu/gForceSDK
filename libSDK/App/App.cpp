@@ -94,10 +94,12 @@ int _tmain(int charc, char* argv[]) {
 		{
 			OYM_INT getNum = _getch();
 			if (getNum == 'Z'){
+				printf("--------please wait five seconds!\n");
+				Sleep(5000);
+				printf("--------It is ok!\n");
 				break;
 			}
 			else if (getNum == 'X'){
-
 				return 1;
 			}
 		}
@@ -122,7 +124,11 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 
 		printf("*           gForce Connect Succeed!!!!!!          *\n");
 		SetEvent(g_NotifySuccessed);          //set event to notify main 
-	} else{
+	} else {
+		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1)%256))
+		{
+			printf("!!!!!!!!!!!!lost package!!!!!!!!!!!\n");
+		}
 		s_lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId - 1) % 256 + s_lostPackage;
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
@@ -132,21 +138,29 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	{
 		char buf[1000];
 		char* ptr = buf;
-		OYM_INT total = 1000;
-		OYM_INT offset = 0;
-		OYM_INT totaloffset = 0;
-		for (int i = EMGDATA_INDEX; i < length; i++)
-		{
-			offset = sprintf_s((char*)ptr + totaloffset, total - totaloffset, "%c", data[i]);
-			totaloffset = totaloffset + offset;
-		}
-		errno_t err = fopen_s(&inputfile, str_filename, "a");
+		//OYM_INT total = 1000;
+		//OYM_INT offset = 0;
+		//OYM_INT totaloffset = 0;
+		//
+		//for (int i = EMGDATA_INDEX; i < length; i++)
+		//{
+		//	offset = sprintf_s((char*)ptr + totaloffset, total - totaloffset, "%c", data[i]);
+		//	totaloffset = totaloffset + offset;
+		//}
+		errno_t err = fopen_s(&inputfile, str_filename, "ab");
 		if (err == 0)
 		{
-			fwrite(buf, sizeof(OYM_UINT8), totaloffset, inputfile);
+			OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX], sizeof(OYM_UINT8), length - EMGDATA_INDEX, inputfile);
+			if (writeLen != length - EMGDATA_INDEX){
+				printf("some data can not be writed in file!!!!!!!!!!!!!!!!!!!!!!\n");
+			}
 			fclose(inputfile);
 		}
-		printf("collecting EMG data:%d,   Lost package number:%u,    Total package number:%u,    Lost package Rate:%f.....\n", data[8], s_lostPackage, s_ReceivePackageNum, LostRate);
+		else
+		{
+			printf("open file failure***********************************************************\n");
+		}
+//		printf("collecting EMG data:%d,   Lost package number:%u,    Total package number:%u,    Lost package Rate:%f.....\n", data[8], s_lostPackage, s_ReceivePackageNum, LostRate);
 		//OutputDebugString(L"processGforceRawData \n ");
 	}
 }

@@ -13,6 +13,7 @@ using namespace std;
 
 
 typedef void(*PTGFORCEDATA)(OYM_PUINT8 pData, OYM_UINT16 length);
+
 class OYM_RemoteDevice;
 class OYM_Discovery_Service;
 class OYM_Log;

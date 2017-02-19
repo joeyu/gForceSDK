@@ -29,7 +29,7 @@ void NPI_TX::Run(void)
 	INT8 totalLen;
 	DWORD dwBytesWritten = 0;
 	PUINT8 pBuf = NULL;
-
+	UINT8 s_Buf[255] = { 0 };
 	OVERLAPPED osWrite;
 	memset(&osWrite, 0, sizeof(OVERLAPPED));
 	osWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -73,6 +73,7 @@ void NPI_TX::Run(void)
 				LogE(L"Post LOG_MSG Err:%d\n", GetLastError());
 				Sleep(500);
 			}
+			//delete []pBuf;
 			state = WR_TYPE_STATE;
 			break;
 		default:
@@ -225,13 +226,13 @@ DWORD NPI_RX::readBlock(void)
 					}
 				}
 			}
-
 			while (!PostThreadMessage(m_log, GetLogMsg(), (WPARAM)pBuf,
 			                          dataLen + EVT_HEADER_LEN)) {
 				LogW(L"Post LOG_MSG Err:%d\n", GetLastError());
 				Sleep(500);
 			}
 			state = READ_TYPE_STATE;
+			//delete []pBuf;
 			//return dataLen + EVT_HEADER_LEN;
 			break;
 		default:
