@@ -28,7 +28,6 @@ int _tmain(int charc, char* argv[]) {
 	memset(str_filename, 3, 100);
 	printf("Please Enter COM number:");
 	scanf_s("%u", &comNum);
-
 	OYM_AdapterManager* am = new OYM_AdapterManager();
 	status = am->Init(comNum);
 	if (!OYM_SUCCEEDED)
@@ -50,6 +49,7 @@ int _tmain(int charc, char* argv[]) {
 			break;  // find avaliable gforce
 		}
 	}  
+	getchar();  // clean the stdio buffer
 	WaitForSingleObject(g_NotifySuccessed, INFINITE);  // wait for gforce notify data
 	while (1) {
 		Sleep(100);
@@ -71,7 +71,6 @@ int _tmain(int charc, char* argv[]) {
 			}
 			
 		}
-		getchar();
 		while (1)
 		{		
 			printf("Please Enter filename:");
@@ -79,7 +78,7 @@ int _tmain(int charc, char* argv[]) {
 			FILE* tmpHandle;
 			errno_t errn = fopen_s(&tmpHandle, str_filename, "ab");
 			if (errn != 0) {
-					printf("file name is wrong!Please enter a new file name\n");
+					printf("some error is happened when open this file,please enter a new file name\n");
 			} else {
 					fclose(tmpHandle);
 					EnterCriticalSection(&mutex);
@@ -116,6 +115,10 @@ int _tmain(int charc, char* argv[]) {
 
 void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 {
+	if (length != 137){		//when received emg data length is not equal 137,some wrong is happend,so we give up this package
+		printf("receive wrong emg data!!!!\n");
+		return;
+	}
 	//add data to process gForce rawdata
 	static BOOL b_GetFirstPackage = FALSE;
 	static OYM_UINT8 s_packageId = 0;
@@ -133,29 +136,24 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		s_lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId - 1) % 256 + s_lostPackage;
 		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1) % 256))
 		{
-			printf("!!!!!!!!!!!!lost package:%u\n",s_lostPackage);
+			float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
+			printf("!!!!!!!!!!!!lost package:%u,  lost package rate:%f\n",s_lostPackage,LostRate);
 		}
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
 
-		//float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
-		//OYM_INT total = 1000;
-		//OYM_INT offset = 0;
-		//OYM_INT totaloffset = 0;
-		//
-		//for (int i = EMGDATA_INDEX; i < length; i++)
-		//{
-		//	offset = sprintf_s((char*)ptr + totaloffset, total - totaloffset, "%c", data[i]);
-		//	totaloffset = totaloffset + offset;
-		//}
-			EnterCriticalSection(&mutex);
-			if (inputfile)
-			{
-				OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX], sizeof(OYM_UINT8), length - EMGDATA_INDEX, inputfile);
-				if (writeLen != length - EMGDATA_INDEX){
-					printf("some data can not be writed in file!!!!!!!!!!!!!!!!!!!!!!\n");
-				}
-			}
-			LeaveCriticalSection(&mutex);	
-//		printf("collecting EMG data:%d,   Lost package number:%u,    Total package number:%u,    Lost package Rate:%f.....\n", data[8], s_lostPackage, s_ReceivePackageNum, LostRate);
+	EnterCriticalSection(&mutex);
+	if (inputfile)
+	{
+		if (s_ReceivePackageNum % 40 == 0){  // print package id
+			printf("Receive package num:%d\n", data[EMGDATA_PACKAGEID_INDEX]);
+		} 
+
+		//write emg data to file cache
+		OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX], sizeof(OYM_UINT8), length - EMGDATA_INDEX, inputfile);
+		if (writeLen != length - EMGDATA_INDEX){
+			printf("some data can not be writed in file!!!!!!!!!!!!!!!!!!!!!!\n");
+		}
+	}
+	LeaveCriticalSection(&mutex);	
 }
