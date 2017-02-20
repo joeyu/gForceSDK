@@ -18,6 +18,8 @@ FILE* inputfile = NULL;
 HANDLE g_NotifySuccessed;
 char str_filename[100];
 CRITICAL_SECTION mutex;
+
+//callback function that used in adaptermanager.cpp
 void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
 
 int _tmain(int charc, char* argv[]) {
@@ -25,7 +27,6 @@ int _tmain(int charc, char* argv[]) {
 	UINT8 comNum;
 	g_NotifySuccessed = CreateEvent(NULL, TRUE, FALSE, NULL);
 	InitializeCriticalSection(&mutex);
-	memset(str_filename, 3, 100);
 	printf("Please Enter COM number:");
 	scanf_s("%u", &comNum);
 	OYM_AdapterManager* am = new OYM_AdapterManager();
@@ -34,7 +35,8 @@ int _tmain(int charc, char* argv[]) {
 	{
 		return OYM_FAIL;
 	}	
-	am->RegistGforceData(ProcessGforceData);
+	am->RegistGforceData(ProcessGforceData);  
+
 	while (1)
 	{
 		status = am->StartScan();
@@ -95,8 +97,12 @@ int _tmain(int charc, char* argv[]) {
 		{
 			OYM_INT getNum = _getch();
 			if (getNum == 'Z'){
-				printf("--------please wait five seconds!\n");
-				Sleep(5000);
+				printf("--------please wait five second!\n");
+				for (unsigned int lefttime = 4; lefttime > 0; lefttime--)
+				{
+					Sleep(1000);
+					printf("%u second left\n",lefttime);
+				}
 				printf("--------It is ok!\n");
 				EnterCriticalSection(&mutex);
 				fclose(inputfile);
@@ -134,11 +140,6 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		SetEvent(g_NotifySuccessed);          //set event to notify main 
 	} else {
 		s_lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId - 1) % 256 + s_lostPackage;
-		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1) % 256))
-		{
-			float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
-			printf("!!!!!!!!!!!!lost package:%u,  lost package rate:%f\n",s_lostPackage,LostRate);
-		}
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
 
@@ -146,13 +147,14 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	if (inputfile)
 	{
 		if (s_ReceivePackageNum % 40 == 0){  // print package id
-			printf("Receive package num:%d\n", data[EMGDATA_PACKAGEID_INDEX]);
+			//float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
+			printf("Receive package num:%d, Lost package:%d, Total Receive package:%d\n", data[EMGDATA_PACKAGEID_INDEX],s_lostPackage,s_ReceivePackageNum);
 		} 
 
 		//write emg data to file cache
-		OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX], sizeof(OYM_UINT8), length - EMGDATA_INDEX, inputfile);
-		if (writeLen != length - EMGDATA_INDEX){
-			printf("some data can not be writed in file!!!!!!!!!!!!!!!!!!!!!!\n");
+		OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX],length - EMGDATA_INDEX, 1, inputfile);
+		if (writeLen != 1){    //some error is happened when write emg data to file
+			printf("some error is happended when written emg data to file!!!!!!!!!!!!!!!!!!!!!!\n");
 		}
 	}
 	LeaveCriticalSection(&mutex);	
