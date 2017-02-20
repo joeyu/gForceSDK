@@ -16,19 +16,22 @@
 #define FILE_NAME_LENGTH			100
 HANDLE g_DataAvailable;
 CRITICAL_SECTION g_CriticalSection;
+char g_filename[FILE_NAME_LENGTH];
 FILE* g_file = NULL;
+size_t g_SingleFileRecordedBytes;
+bool g_PrintSingleFileRecordedBytesPreface;
 
 static void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
+static void PrintSingleFileRecordedBytes(int n);
 
 int _tmain(int charc, char* argv[]) {
 	OYM_STATUS status;
 	UINT8 comNum;
-	char filename[FILE_NAME_LENGTH];
 
 	g_DataAvailable = CreateEvent(NULL, TRUE, FALSE, NULL);
 	InitializeCriticalSection(&g_CriticalSection);
 
-	cout << "gForce raw data capturing utility\n"
+	cout << "===== gForce raw data capturing utility Ver0.1 =====\n\n"
 	     << "Please enter COM number:";
 	scanf_s("%u", &comNum);
 	OYM_AdapterManager* am = new OYM_AdapterManager();
@@ -56,19 +59,23 @@ int _tmain(int charc, char* argv[]) {
 		Sleep(100);
 		cout << "\n"
 		     << "After putting on the gForce properly, please enter the name of the file for recording your EMG data:\n";
+		FILE *tmp_file = NULL;
 		while (1)
 		{		
-			gets_s(filename, sizeof(filename)-1);
-			errno_t err = fopen_s(&g_file, filename, "ab");
+			gets_s(g_filename, sizeof(g_filename) - 1);
+			errno_t err = fopen_s(&tmp_file, g_filename, "ab");
 			if (err != 0) {
 				cout << "Bad file name, please enter a new one:\n";
 				continue;
 			}
 			break;
 		}
-		printf("\nPressing any key will start to record your EMG data to file '%s'.\n\n", filename);
+		printf("\nPressing any key will start to record your EMG data to file '%s'.\n\n", g_filename);
 		_getch();
-		printf("Recording to file '%s' started...\n\n", filename);
+		g_SingleFileRecordedBytes = 0; //Reset the count for the new file
+		g_PrintSingleFileRecordedBytesPreface = true;
+		g_file = tmp_file;
+		printf("Recording to file '%s' started...\n\n", g_filename);
 		cout << "During recording, pressing 'Z' will close the file and promt you to open another file to record, and pressing 'X' will also exit the program.\n\n";
 		while (1)
 		{
@@ -79,13 +86,14 @@ int _tmain(int charc, char* argv[]) {
 				// It takes a couple of seconds to flush some 'delayed' data.
 				cout << "Exiting.......\n"
 				     << "Please wait 1 second for buffered data...... ";
+				g_PrintSingleFileRecordedBytesPreface = true;
 				Sleep(1000);
 
 				EnterCriticalSection(&g_CriticalSection);
 				fclose(g_file);
 				g_file = NULL;
 				LeaveCriticalSection(&g_CriticalSection);
-				printf("File '%s' has been saved successfully :-) \n\n", filename);
+				printf("File '%s' has been saved successfully :-) \n\n", g_filename);
 
 				if (in_c == 'X' || in_c == 'x') { // exit the program
 					exit = true;
@@ -94,6 +102,8 @@ int _tmain(int charc, char* argv[]) {
 			}
 		}
 	} while (!exit);
+
+	CloseHandle(g_DataAvailable);
 	return 0;
 }
 
@@ -125,6 +135,7 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		{
 			float LostRate = ((float)(s_lostPackage * 10000 / s_ReceivePackageNum)) / 100;
 			printf("[WARNING] Lost package: %d, lost package rate: %4f\n", s_lostPackage, LostRate);
+			g_PrintSingleFileRecordedBytesPreface = true;
 		}
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
@@ -133,13 +144,23 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	if (g_file)
 	{
 		// Write EMG data to file
-		size_t writeLen = fwrite(&data[EMGDATA_INDEX], length - EMGDATA_INDEX, 1, g_file);
-		if (writeLen != 1){
+		size_t toWrite = length - EMGDATA_INDEX;
+		if (1 != fwrite(&data[EMGDATA_INDEX], toWrite, 1, g_file)){
 			cout << "[ERROR] Some data can't be written to the file!\n";
+			g_PrintSingleFileRecordedBytesPreface = true;
 		}
-
-
-
+		else {
+			g_SingleFileRecordedBytes += toWrite;
+			PrintSingleFileRecordedBytes(g_SingleFileRecordedBytes);
+		}
 	}
 	LeaveCriticalSection(&g_CriticalSection);
+}
+
+void PrintSingleFileRecordedBytes(int n) {
+	if (g_PrintSingleFileRecordedBytesPreface) {
+		printf("File %s's recorded bytes:         ", g_filename);
+	}
+	printf("\b\b\b\b\b\b\b\b%8d", n);
+	g_PrintSingleFileRecordedBytesPreface = false;
 }
