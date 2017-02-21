@@ -14,6 +14,8 @@
 #define EMGDATA_PACKAGEID_INDEX		8
 #define EMGDATA_INDEX				9
 #define FILE_NAME_LENGTH			100
+
+#define RAWDATATEST  // this macro is used to test rawdata transmission,when define this macro ,the rawdata is 0x00~0x7f (128Bytes)
 FILE* inputfile = NULL;
 HANDLE g_NotifySuccessed;
 char str_filename[100];
@@ -27,6 +29,12 @@ int _tmain(int charc, char* argv[]) {
 	UINT8 comNum;
 	g_NotifySuccessed = CreateEvent(NULL, TRUE, FALSE, NULL);
 	InitializeCriticalSection(&mutex);
+#ifdef RAWDATATEST
+	printf("*************************************************************\n");
+	printf("*     This version is used to test rawdata transmission!    *\n");
+	printf("*************************************************************\n");
+#endif
+
 	printf("Please Enter COM number:");
 	scanf_s("%u", &comNum);
 	OYM_AdapterManager* am = new OYM_AdapterManager();
@@ -130,7 +138,21 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	static OYM_UINT8 s_packageId = 0;
 	static OYM_UINT32 s_ReceivePackageNum = 0;
 	static OYM_UINT32 s_lostPackage = 0;
+#ifdef RAWDATATEST
+	static OYM_UINT32 s_transforError = 0;
+#endif
 	s_ReceivePackageNum++;
+#ifdef RAWDATATEST
+	//when use rawdata test,the rawdata is 0x00~0x7f (128Bytes)
+	for (unsigned int index = EMGDATA_INDEX; index < length; index++)
+	{
+		if (data[index] != (index - EMGDATA_INDEX))
+		{
+			s_transforError++;
+			printf(" %d", data[index]);
+		}
+	}
+#endif
 	if (b_GetFirstPackage == FALSE)  // first time get into this function
 	{
 		b_GetFirstPackage = TRUE;
@@ -148,7 +170,11 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	{
 		if (s_ReceivePackageNum % 40 == 0){  // print package id
 			//float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
-			printf("Receive package num:%d, Lost package:%d, Total Receive package:%d\n", data[EMGDATA_PACKAGEID_INDEX],s_lostPackage,s_ReceivePackageNum);
+#ifdef RAWDATATEST
+			printf("Receive package num:%d, Lost package:%d, Total Receive package:%d, Data transmission Error:%d\n", data[EMGDATA_PACKAGEID_INDEX],s_lostPackage,s_ReceivePackageNum,s_transforError);
+#else
+			printf("Receive package num:%d, Lost package:%d, Total Receive package:%d\n", data[EMGDATA_PACKAGEID_INDEX], s_lostPackage, s_ReceivePackageNum);
+#endif
 		} 
 
 		//write emg data to file cache
