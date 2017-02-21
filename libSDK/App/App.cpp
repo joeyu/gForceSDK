@@ -14,6 +14,12 @@
 #define EMGDATA_PACKAGEID_INDEX		8
 #define EMGDATA_INDEX				9
 #define FILE_NAME_LENGTH			100
+
+// this software is run in rawdata mode,capture correct emg raw data
+#define GFORCERAWDATAMODE	1   
+// this software is run in test mode,gforce send data is 0x00~0x7f,use to test gforce data transmission
+#define GFORCETESTMODE		0	
+
 HANDLE g_DataAvailable;
 CRITICAL_SECTION g_CriticalSection;
 char g_filename[FILE_NAME_LENGTH];
@@ -30,7 +36,13 @@ int _tmain(int charc, char* argv[]) {
 
 	g_DataAvailable = CreateEvent(NULL, TRUE, FALSE, NULL);
 	InitializeCriticalSection(&g_CriticalSection);
-
+#if GFORCETESTMODE
+	cout<<"*****************************************************************\n";
+	cout<<"*                                                               *\n";
+	cout<<"*             This version is running in Test Mode              *\n";
+	cout<<"*                                                               *\n";
+	cout<<"*****************************************************************\n";
+#endif
 	cout << "===== gForce raw data capturing utility Ver0.1 =====\n\n"
 	     << "Please enter COM number:";
 	scanf_s("%u", &comNum);
@@ -120,7 +132,9 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	static OYM_UINT8 s_packageId = 0;
 	static OYM_UINT32 s_ReceivePackageNum = 0;
 	static OYM_UINT32 s_lostPackage = 0;
-	
+#if GFORCETESTMODE
+	bool  b_errordata = false;  // receive data is error
+#endif
 	s_ReceivePackageNum++;
 	if (b_GetFirstPackage == FALSE)  // first time get into this function
 	{
@@ -140,6 +154,19 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
 
+#if GFORCETESTMODE
+	UINT8* dataP = &data[EMGDATA_INDEX];
+	for(unsigned int index =0; index<128; index++) {
+		if (dataP[index]!=index) {
+			printf("[error] Receive data:%d ,Actual data:%d\n",dataP[index],index);
+			b_errordata = true;
+		}
+	}
+	if (b_errordata) {
+		printf("---------------------------------------------------------------\n");
+	}
+#endif
+
 	EnterCriticalSection(&g_CriticalSection);
 	if (g_file)
 	{
@@ -156,6 +183,7 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	}
 	LeaveCriticalSection(&g_CriticalSection);
 }
+
 
 void PrintSingleFileRecordedBytes(int n) {
 	if (g_PrintSingleFileRecordedBytesPreface) {
