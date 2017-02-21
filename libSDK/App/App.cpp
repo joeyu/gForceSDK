@@ -15,7 +15,7 @@
 #define EMGDATA_INDEX				9
 #define FILE_NAME_LENGTH			100
 
-#define RAWDATATEST  // this macro is used to test rawdata transmission,when define this macro ,the rawdata is 0x00~0x7f (128Bytes)
+//#define RAWDATATEST  // this macro is used to test rawdata transmission,when define this macro ,the rawdata is 0x00~0x7f (128Bytes)
 FILE* inputfile = NULL;
 HANDLE g_NotifySuccessed;
 char str_filename[100];
