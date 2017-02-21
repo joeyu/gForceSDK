@@ -14,123 +14,105 @@
 #define EMGDATA_PACKAGEID_INDEX		8
 #define EMGDATA_INDEX				9
 #define FILE_NAME_LENGTH			100
+HANDLE g_DataAvailable;
+CRITICAL_SECTION g_CriticalSection;
+char g_filename[FILE_NAME_LENGTH];
+FILE* g_file = NULL;
+size_t g_SingleFileRecordedBytes;
+bool g_PrintSingleFileRecordedBytesPreface;
 
-//#define RAWDATATEST  // this macro is used to test rawdata transmission,when define this macro ,the rawdata is 0x00~0x7f (128Bytes)
-FILE* inputfile = NULL;
-HANDLE g_NotifySuccessed;
-char str_filename[100];
-CRITICAL_SECTION mutex;
-
-//callback function that used in adaptermanager.cpp
-void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
+static void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
+static void PrintSingleFileRecordedBytes(int n);
 
 int _tmain(int charc, char* argv[]) {
 	OYM_STATUS status;
 	UINT8 comNum;
-	g_NotifySuccessed = CreateEvent(NULL, TRUE, FALSE, NULL);
-	InitializeCriticalSection(&mutex);
-#ifdef RAWDATATEST
-	printf("*************************************************************\n");
-	printf("*     This version is used to test rawdata transmission!    *\n");
-	printf("*************************************************************\n");
-#endif
 
-	printf("Please Enter COM number:");
+	g_DataAvailable = CreateEvent(NULL, TRUE, FALSE, NULL);
+	InitializeCriticalSection(&g_CriticalSection);
+
+	cout << "===== gForce raw data capturing utility Ver0.1 =====\n\n"
+	     << "Please enter COM number:";
 	scanf_s("%u", &comNum);
 	OYM_AdapterManager* am = new OYM_AdapterManager();
 	status = am->Init(comNum);
 	if (!OYM_SUCCEEDED)
 	{
-		return OYM_FAIL;
+		return -2;
 	}	
-	am->RegistGforceData(ProcessGforceData);  
-
-	while (1)
-	{
+	am->RegistGforceData(ProcessGforceData);
+	OYM_UINT8 gForce_count;
+	do {
 		status = am->StartScan();
 		if (!OYM_SUCCEEDED)
 		{
-			printf("main thread! status = %d\n", status);
-			return OYM_FAIL;
+			cout << "[ERROR] OYM_AdapterManager::StartScanFailed\n";
+			return -2;
 		}
-		OYM_UINT8  num = am->WaitForScanFinished();  //wait for scan finished ,the max waitfor time is 10s
-		if (num > 0)
-		{
-			break;  // find avaliable gforce
-		}
-	}  
-	getchar();  // clean the stdio buffer
-	WaitForSingleObject(g_NotifySuccessed, INFINITE);  // wait for gforce notify data
-	while (1) {
+		gForce_count = am->WaitForScanFinished();  //wait for scan finished, 10s to timeout.
+	} while (gForce_count == 0);
+
+	getchar();  // clean the stdin buffer
+	WaitForSingleObject(g_DataAvailable, INFINITE);  // wait for gforce notify data
+	bool exit = false;
+	do {
 		Sleep(100);
-		printf("***************************************Help Command***************************************\n");
-		while (1)
-		{
-			printf("\nAfter gForce is worn on forearm properly, please enter Y:");
-			char confirmdata = _getch();
-			if (confirmdata == 'y' || confirmdata == 'Y')
-			{
-				printf("Y\n");
-				break;
-			}
-			else {
-				if (confirmdata == 'X')
-				{
-					return 1;
-				}
-			}
-			
-		}
+		cout << "\n"
+		     << "After putting on the gForce properly, please enter the name of the file for recording your EMG data:\n";
+		FILE *tmp_file = NULL;
 		while (1)
 		{		
-			printf("Please Enter filename:");
-			gets_s(str_filename, sizeof(str_filename)-1);
-			FILE* tmpHandle;
-			errno_t errn = fopen_s(&tmpHandle, str_filename, "ab");
-			if (errn != 0) {
-					printf("some error is happened when open this file,please enter a new file name\n");
-			} else {
-					fclose(tmpHandle);
-					EnterCriticalSection(&mutex);
-					errno_t err = fopen_s(&inputfile, str_filename, "ab");
-					if (err != 0)
-					{
-						printf("open file failure***********************************************************\n");
-					}
-					LeaveCriticalSection(&mutex);
-					break;
-			}	
+			gets_s(g_filename, sizeof(g_filename) - 1);
+			errno_t err = fopen_s(&tmp_file, g_filename, "ab");
+			if (err != 0) {
+				cout << "Bad file name, please enter a new one:\n";
+				continue;
+			}
+			break;
 		}
+		printf("\nPressing any key will start to record your EMG data to file '%s'.\n\n", g_filename);
+		_getch();
+		g_SingleFileRecordedBytes = 0; //Reset the count for the new file
+		g_PrintSingleFileRecordedBytesPreface = true;
+		g_file = tmp_file;
+		printf("Recording to file '%s' started...\n\n", g_filename);
+		cout << "During recording, pressing 'Z' will close the file and promt you to open another file to record, and pressing 'X' will also exit the program.\n\n";
 		while (1)
 		{
-			OYM_INT getNum = _getch();
-			if (getNum == 'Z'){
-				printf("--------please wait five second!\n");
-				for (unsigned int lefttime = 4; lefttime > 0; lefttime--)
-				{
-					Sleep(1000);
-					printf("%u second left\n",lefttime);
+			int in_c = _getch();
+			if (in_c == 'Z' || in_c == 'z' || in_c == 'X' || in_c == 'x') {
+				// Exit writing to the current file...
+
+				// It takes a couple of seconds to flush some 'delayed' data.
+				cout << "Exiting.......\n"
+				     << "Please wait 1 second for buffered data...... ";
+				g_PrintSingleFileRecordedBytesPreface = true;
+				Sleep(1000);
+
+				EnterCriticalSection(&g_CriticalSection);
+				fclose(g_file);
+				g_file = NULL;
+				LeaveCriticalSection(&g_CriticalSection);
+				printf("File '%s' has been saved successfully :-) \n\n", g_filename);
+
+				if (in_c == 'X' || in_c == 'x') { // exit the program
+					exit = true;
 				}
-				printf("--------It is ok!\n");
-				EnterCriticalSection(&mutex);
-				fclose(inputfile);
-				inputfile = NULL;
-				LeaveCriticalSection(&mutex);
 				break;
 			}
-			else if (getNum == 'X'){
-				return 1;
-			}
 		}
-	}
-	return 1;
+	} while (!exit);
+
+	CloseHandle(g_DataAvailable);
+	return 0;
 }
 
 
 void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 {
-	if (length != 137){		//when received emg data length is not equal 137,some wrong is happend,so we give up this package
-		printf("receive wrong emg data!!!!\n");
+	// If received emg data length is not equal to 137, something is wrong, and just drop it
+	if (length != 137) {		
+		cout << "[ERROR] Received bad EMG data!!!!\n";
 		return;
 	}
 	//add data to process gForce rawdata
@@ -138,50 +120,47 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	static OYM_UINT8 s_packageId = 0;
 	static OYM_UINT32 s_ReceivePackageNum = 0;
 	static OYM_UINT32 s_lostPackage = 0;
-#ifdef RAWDATATEST
-	static OYM_UINT32 s_transforError = 0;
-#endif
+	
 	s_ReceivePackageNum++;
-#ifdef RAWDATATEST
-	//when use rawdata test,the rawdata is 0x00~0x7f (128Bytes)
-	for (unsigned int index = EMGDATA_INDEX; index < length; index++)
-	{
-		if (data[index] != (index - EMGDATA_INDEX))
-		{
-			s_transforError++;
-			printf(" %d", data[index]);
-		}
-	}
-#endif
 	if (b_GetFirstPackage == FALSE)  // first time get into this function
 	{
 		b_GetFirstPackage = TRUE;
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];  // get the first package id
 
-		printf("*           gForce Connect Succeed!!!!!!          *\n");
-		SetEvent(g_NotifySuccessed);          //set event to notify main 
+		cout << "[INFO] Succeeded in connecting to gForce!\n";
+		SetEvent(g_DataAvailable);          //set event to notify main 
 	} else {
 		s_lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId - 1) % 256 + s_lostPackage;
+		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1) % 256))
+		{
+			float LostRate = ((float)(s_lostPackage * 10000 / s_ReceivePackageNum)) / 100;
+			printf("[WARNING] Lost package: %d, lost package rate: %4f\n", s_lostPackage, LostRate);
+			g_PrintSingleFileRecordedBytesPreface = true;
+		}
 		s_packageId = data[EMGDATA_PACKAGEID_INDEX];
 	}
 
-	EnterCriticalSection(&mutex);
-	if (inputfile)
+	EnterCriticalSection(&g_CriticalSection);
+	if (g_file)
 	{
-		if (s_ReceivePackageNum % 40 == 0){  // print package id
-			//float LostRate = ((s_lostPackage == 0) ? 0 : ((float)s_lostPackage / (float)s_ReceivePackageNum));
-#ifdef RAWDATATEST
-			printf("Receive package num:%d, Lost package:%d, Total Receive package:%d, Data transmission Error:%d\n", data[EMGDATA_PACKAGEID_INDEX],s_lostPackage,s_ReceivePackageNum,s_transforError);
-#else
-			printf("Receive package num:%d, Lost package:%d, Total Receive package:%d\n", data[EMGDATA_PACKAGEID_INDEX], s_lostPackage, s_ReceivePackageNum);
-#endif
-		} 
-
-		//write emg data to file cache
-		OYM_INT writeLen = fwrite(&data[EMGDATA_INDEX],length - EMGDATA_INDEX, 1, inputfile);
-		if (writeLen != 1){    //some error is happened when write emg data to file
-			printf("some error is happended when written emg data to file!!!!!!!!!!!!!!!!!!!!!!\n");
+		// Write EMG data to file
+		size_t toWrite = length - EMGDATA_INDEX;
+		if (1 != fwrite(&data[EMGDATA_INDEX], toWrite, 1, g_file)){
+			cout << "[ERROR] Some data can't be written to the file!\n";
+			g_PrintSingleFileRecordedBytesPreface = true;
+		}
+		else {
+			g_SingleFileRecordedBytes += toWrite;
+			PrintSingleFileRecordedBytes(g_SingleFileRecordedBytes);
 		}
 	}
-	LeaveCriticalSection(&mutex);	
+	LeaveCriticalSection(&g_CriticalSection);
+}
+
+void PrintSingleFileRecordedBytes(int n) {
+	if (g_PrintSingleFileRecordedBytesPreface) {
+		printf("File %s's recorded bytes:         ", g_filename);
+	}
+	printf("\b\b\b\b\b\b\b\b%8d", n);
+	g_PrintSingleFileRecordedBytesPreface = false;
 }
