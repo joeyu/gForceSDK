@@ -85,7 +85,7 @@ int _tmain(int charc, char* argv[]) {
 
 				// It takes a couple of seconds to flush some 'delayed' data.
 				cout << "Exiting.......\n"
-				     << "Please wait 1 second for buffered data...... ";
+				     << "Please wait 1 second for buffered data......\n";
 				g_PrintSingleFileRecordedBytesPreface = true;
 				Sleep(1000);
 
@@ -93,7 +93,7 @@ int _tmain(int charc, char* argv[]) {
 				fclose(g_file);
 				g_file = NULL;
 				LeaveCriticalSection(&g_CriticalSection);
-				printf("File '%s' has been saved successfully :-) \n\n", g_filename);
+				printf("\nFile '%s' has been saved successfully :-) \n\n", g_filename);
 
 				if (in_c == 'X' || in_c == 'x') { // exit the program
 					exit = true;
