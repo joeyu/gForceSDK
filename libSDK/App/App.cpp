@@ -16,9 +16,9 @@
 #define FILE_NAME_LENGTH			100
 
 // this software is run in rawdata mode,capture correct emg raw data
-#define GFORCERAWDATAMODE	1   
+#define GFORCERAWDATAMODE	0
 // this software is run in test mode,gforce send data is 0x00~0x7f,use to test gforce data transmission
-#define GFORCETESTMODE		0	
+#define GFORCETESTMODE		1
 
 HANDLE g_DataAvailable;
 CRITICAL_SECTION g_CriticalSection;
