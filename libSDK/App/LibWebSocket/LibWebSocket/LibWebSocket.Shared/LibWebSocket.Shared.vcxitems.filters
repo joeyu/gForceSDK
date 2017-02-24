@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)targetver.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)LibWebSocket.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\sha1.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Socket.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\TCPSocketConnection.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\TCPSocketServer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\WebSocketConnection.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\WebSocketHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\WebSocketServer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)LibWebSocket.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\sha1.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Socket.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\TCPSocketConnection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\TCPSocketServer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\WebSocketConnection.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\WebSocketServer.cpp" />
+  </ItemGroup>
+</Project>
