@@ -81,6 +81,9 @@
     <ClInclude Include="..\..\OYM_NIF\include\OYM_NIF.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="WinHttpWebSocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -123,6 +126,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\OYM_NIF\src\OYM_NIF.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinHttpWebSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
