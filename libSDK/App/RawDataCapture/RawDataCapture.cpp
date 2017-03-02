@@ -41,22 +41,23 @@ int WebSocketClientRunnable::PutData(char *data_buf, size_t length) {
 		return -1;
 	}
 	memcpy(data->buf, data_buf, length);
+	data->size = length;
 	m_sendQueue.Push(data);
 
 	return 0;
 }
 
 void WebSocketClientRunnable::Run() {
-
-	// Signal the server of the client role.
-	const char source_role[] = "source";
+	// Open the connection.
 	if (0 != m_webSocket.Open(m_server, m_port)) {
 		printf("[ERROR] WebSocket::Open\n");
 		return;
-		if (0 != m_webSocket.Send(WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE, (void *)source_role, sizeof(source_role))) {
-			printf("[ERROR] WebSocket::Send\n");
-			return;
-		}
+	}
+	// Signal the server of the client role.
+	const char source_role[] = "source";
+	if (0 != m_webSocket.Send(WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE, (void *)source_role, strlen(source_role))) {
+		printf("[ERROR] WebSocket::Send\n");
+		return;
 	}
 	while (true) {
 		Data *data = m_sendQueue.Pop();
@@ -70,14 +71,24 @@ void WebSocketClientRunnable::Run() {
 
 
 //using namespace System;
-#define EMGDATA_PACKAGEID_INDEX		8
-#define EMGDATA_INDEX				9
+#define EMGDATA_EVENT_TYPE_INDEX	6  // minor data index in received notify data
+#define EMGDATA_LENGTH_INDEX		7	// for protocol ,lenght index,the value of length inclue emg data and package id data
+#define EMGDATA_CRC_INDEX			8	// crc data index, crc  for emg data and package id 
+#define EMGDATA_PACKAGEID_INDEX		9	// package id index in received notify data
+#define EMGDATA_VALIDDATA_INDEX		10  //valid emg data index
+
+// valid data is emgdata + head data + packageid
+#define EMGDATA_LENGTH				128  // emg data length
+#define EMGDATA_HEAD_LENGTH			3	// head data length
+#define EMGDATA_PACKAGEID_LENGTH	1   // package id length
+
+#define SYSTEMTIME_LENGTH			8
 #define FILE_NAME_LENGTH			100
 
 // this software is run in rawdata mode,capture correct emg raw data
-#define GFORCERAWDATAMODE	1   
+#define GFORCERAWDATAMODE	1
 // this software is run in test mode,gforce send data is 0x00~0x7f,use to test gforce data transmission
-#define GFORCETESTMODE		0	
+#define GFORCETESTMODE		0
 
 HANDLE g_DataAvailable;
 CRITICAL_SECTION g_CriticalSection;
@@ -92,6 +103,9 @@ WebSocketClientRunnable g_webSocketClientRunnalbe(g_server, g_port);
 
 static void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
 static void PrintSingleFileRecordedBytes(int n);
+static UINT8 CheckSum(UINT8* data, UINT8 length);
+static ULARGE_INTEGER GetFileTime(void);
+
 
 int _tmain(int charc, char* argv[]) {
 	OYM_STATUS status;
@@ -104,7 +118,7 @@ int _tmain(int charc, char* argv[]) {
 	cout<<"*                                                               *\n";
 	cout<<"*             This version is running in Test Mode              *\n";
 	cout<<"*                                                               *\n";
-	cout<<"*****************************************************************\n";
+	cout << "*****************************************************************\n";
 #endif
 	CThread webSocketClientThread(&g_webSocketClientRunnalbe);
 
@@ -122,7 +136,7 @@ int _tmain(int charc, char* argv[]) {
 	if (!OYM_SUCCEEDED)
 	{
 		return -2;
-	}	
+	}
 	am->RegistGforceData(ProcessGforceData);
 	OYM_UINT8 gForce_count;
 	do {
@@ -141,10 +155,10 @@ int _tmain(int charc, char* argv[]) {
 	do {
 		Sleep(100);
 		cout << "\n"
-		     << "After putting on the gForce properly, please enter the name of the file for recording your EMG data:\n";
+			<< "After putting on the gForce properly, please enter the name of the file for recording your EMG data:\n";
 		FILE *tmp_file = NULL;
 		while (1)
-		{		
+		{
 			gets_s(g_filename, sizeof(g_filename) - 1);
 			errno_t err = fopen_s(&tmp_file, g_filename, "ab");
 			if (err != 0) {
@@ -168,7 +182,7 @@ int _tmain(int charc, char* argv[]) {
 
 				// It takes a couple of seconds to flush some 'delayed' data.
 				cout << "Exiting.......\n"
-				     << "Please wait 1 second for buffered data......\n";
+					<< "Please wait 1 second for buffered data......\n";
 				g_PrintSingleFileRecordedBytesPreface = true;
 				Sleep(1000);
 
@@ -197,7 +211,7 @@ int _tmain(int charc, char* argv[]) {
 void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 {
 	// If received emg data length is not equal to 137, something is wrong, and just drop it
-	if (length != 137) {		
+	if (length != 138) {
 		cout << "[ERROR] Received bad EMG data!!!!\n";
 		return;
 	}
@@ -217,9 +231,10 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 
 		cout << "[INFO] Succeeded in connecting to gForce!\n";
 		SetEvent(g_DataAvailable);          //set event to notify main 
-	} else {
+	}
+	else {
 		s_lostPackage = (data[EMGDATA_PACKAGEID_INDEX] + 256 - s_packageId - 1) % 256 + s_lostPackage;
-		if (data[EMGDATA_PACKAGEID_INDEX] !=((s_packageId +1) % 256))
+		if (data[EMGDATA_PACKAGEID_INDEX] != ((s_packageId + 1) % 256))   // lost package
 		{
 			float LostRate = ((float)(s_lostPackage * 10000 / s_ReceivePackageNum)) / 100;
 			printf("[WARNING] Lost package: %d, lost package rate: %4f\n", s_lostPackage, LostRate);
@@ -232,30 +247,43 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	UINT8* dataP = &data[EMGDATA_INDEX];
 	for(unsigned int index =0; index<128; index++) {
 		if (dataP[index]!=index) {
-			printf("[error] Receive data:%d ,Actual data:%d\n",dataP[index],index);
+			printf("[ERROR] Receive data:%d ,Actual data:%d\n",dataP[index],index);
 			b_errordata = true;
 		}
 	}
 	if (b_errordata) {
 		printf("---------------------------------------------------------------\n");
-	}
+}
 #endif
-
-	g_webSocketClientRunnalbe.PutData((char *)&data[EMGDATA_INDEX], length - EMGDATA_INDEX);
+	g_webSocketClientRunnalbe.PutData((char *)&data[EMGDATA_VALIDDATA_INDEX], EMGDATA_LENGTH);
 
 	EnterCriticalSection(&g_CriticalSection);
 	if (g_file)
 	{
 		// Write EMG data to file
-		size_t toWrite = length - EMGDATA_INDEX;
-		if (1 != fwrite(&data[EMGDATA_INDEX], toWrite, 1, g_file)){
-			cout << "[ERROR] Some data can't be written to the file!\n";
-			g_PrintSingleFileRecordedBytesPreface = true;
+		UINT8 crcData = CheckSum(&data[EMGDATA_PACKAGEID_INDEX], 129);
+		if (crcData == data[EMGDATA_CRC_INDEX])
+		{
+			size_t toWrite = EMGDATA_LENGTH + EMGDATA_HEAD_LENGTH + EMGDATA_PACKAGEID_LENGTH;
+			if (1 != fwrite(&data[EMGDATA_EVENT_TYPE_INDEX], toWrite, 1, g_file)){
+				cout << "[ERROR] Some data can't be written to the file!\n";
+				g_PrintSingleFileRecordedBytesPreface = true;
+			}
+			else {
+				ULARGE_INTEGER ltime;
+				ltime = GetFileTime();
+				if (1 != fwrite(&ltime, sizeof(ltime), 1, g_file)) {
+					cout << "[ERROR] system time can't be written to the file\n";
+					g_PrintSingleFileRecordedBytesPreface = true;
+				}
+				g_SingleFileRecordedBytes = g_SingleFileRecordedBytes + toWrite + sizeof(ltime);
+				PrintSingleFileRecordedBytes(g_SingleFileRecordedBytes);
+			}
 		}
 		else {
-			g_SingleFileRecordedBytes += toWrite;
-			PrintSingleFileRecordedBytes(g_SingleFileRecordedBytes);
+			printf("[ERROR] CRC checksum error!\n");
 		}
+
 	}
 	LeaveCriticalSection(&g_CriticalSection);
 }
@@ -267,6 +295,29 @@ void PrintSingleFileRecordedBytes(int n) {
 	}
 	printf("\b\b\b\b\b\b\b\b%8d", n);
 	g_PrintSingleFileRecordedBytesPreface = false;
+}
+
+//crc checksum
+UINT8 CheckSum(UINT8* data, UINT8 length)
+{
+	UINT8 cs = 0;
+	while (length--) {
+		cs ^= *data++;
+	}
+	return cs;
+}
+
+//get systemtime and convert to ulonglong format
+ULARGE_INTEGER GetFileTime(void)
+{
+	SYSTEMTIME utcSystemTime;
+	FILETIME utcFileTime;
+	ULARGE_INTEGER time;
+	GetSystemTime(&utcSystemTime);
+	SystemTimeToFileTime(&utcSystemTime, &utcFileTime);
+	time.HighPart = utcFileTime.dwHighDateTime;
+	time.LowPart = utcFileTime.dwLowDateTime;
+	return time;
 }
 
 

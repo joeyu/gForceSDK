@@ -8,14 +8,16 @@ wss.on('listening', function () {
 }).on('connection', function (ws) {
     console.log("[INFO] Client %s connected!\n");
     ws.on('message', function (data, flags) {
-        //console.log("typeof == %s", typeof data);
+        //console.log("[INFO] data: %s, typeof == %s", data, typeof data);
         if (flags.binary) { // raw data
             if (ws.role === 'source') {
-                console.log("[INFO] data: %s, typeof == %s", data, typeof data);
+                //console.log("[INFO] data: %s, typeof == %s", data, typeof data);
                 // send the data to all 'sinks'
                 wss.clients.forEach(function each(client) {
                     if (client !== ws && client.role === 'sink' && client.readyState == WebSocket.OPEN) {
-                        ws.send(data);
+                        //console.log("data sent");
+                        //client.send("data sent");
+                        client.send(data);
                     }
                 });
             }
