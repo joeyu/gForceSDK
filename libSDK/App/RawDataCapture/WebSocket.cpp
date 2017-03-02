@@ -10,13 +10,13 @@
 #include <WinHttp.h>
 #include <stdio.h>
 
-#include "WinHttpWebSocket.h"
+#include "WebSocket.h"
 
-const WCHAR * const WinHttpWebSocket::m_userAgent = L"OYMotion WebSocket";
-const WCHAR * const WinHttpWebSocket::m_path = L"/RawData";
+const WCHAR * const WebSocket::m_userAgent = L"OYMotion WebSocket";
+const WCHAR * const WebSocket::m_path = L"/RawData";
 
 
-int WinHttpWebSocket::Open(const WCHAR *server, INTERNET_PORT port)
+int WebSocket::Open(const WCHAR *server, INTERNET_PORT port)
 {
 	DWORD dwError = ERROR_SUCCESS;
 	BOOL fStatus = FALSE;
@@ -104,7 +104,7 @@ int WinHttpWebSocket::Open(const WCHAR *server, INTERNET_PORT port)
 
 	//
 	// Application should check what is the HTTP status code returned by the server and behave accordingly.
-	// WinHttpWebSocketCompleteUpgrade will fail if the HTTP status code is different than 101.
+	// WebSocketCompleteUpgrade will fail if the HTTP status code is different than 101.
 	//
 
 	m_webSocket = WinHttpWebSocketCompleteUpgrade(hRequestHandle, NULL);
@@ -137,7 +137,7 @@ quit:
     //
     // Send and receive data on the websocket protocol.
     //
-int WinHttpWebSocket::Send(WINHTTP_WEB_SOCKET_BUFFER_TYPE buf_type, void *buf, size_t size) {
+int WebSocket::Send(WINHTTP_WEB_SOCKET_BUFFER_TYPE buf_type, void *buf, size_t size) {
 	DWORD dwError = NO_ERROR;
 	dwError = WinHttpWebSocketSend(m_webSocket,
 		buf_type,
@@ -152,7 +152,7 @@ int WinHttpWebSocket::Send(WINHTTP_WEB_SOCKET_BUFFER_TYPE buf_type, void *buf, s
 
     //wprintf(L"Sent message to the server: '%s'\n", pcwszMessage);
 
-int WinHttpWebSocket::Receive(void *buf, size_t size, size_t *received_size, WINHTTP_WEB_SOCKET_BUFFER_TYPE *buf_type) {
+int WebSocket::Receive(void *buf, size_t size, size_t *received_size, WINHTTP_WEB_SOCKET_BUFFER_TYPE *buf_type) {
 	DWORD dwError = NO_ERROR;
 
 	dwError = WinHttpWebSocketReceive(m_webSocket,
@@ -170,7 +170,7 @@ int WinHttpWebSocket::Receive(void *buf, size_t size, size_t *received_size, WIN
 }
 
 
-void WinHttpWebSocket::Close(){
+void WebSocket::Close(){
 	DWORD dwError = NO_ERROR;
 
 	if (m_webSocket != NULL)
@@ -178,6 +178,15 @@ void WinHttpWebSocket::Close(){
 		//
 		// Gracefully close the connection.
 		//
+
+		dwError = WinHttpWebSocketShutdown(m_webSocket,
+			WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS,
+			NULL,
+			0);
+		if (dwError != ERROR_SUCCESS)
+		{
+			printf("WinHttpWebSocketShutdown : %d", dwError);
+		}
 
 		dwError = WinHttpWebSocketClose(m_webSocket,
 			WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS,

@@ -2,9 +2,9 @@
 #include <Windows.h>
 #include <WinHttp.h>
 
-class WinHttpWebSocket {
+class WebSocket {
 public:
-	WinHttpWebSocket() : m_session(NULL), m_connection(NULL), m_webSocket(NULL) {}
+	WebSocket() : m_session(NULL), m_connection(NULL), m_webSocket(NULL) {}
 	int Open(const WCHAR *server, INTERNET_PORT port);
 	void Close();
 	int Send(WINHTTP_WEB_SOCKET_BUFFER_TYPE buf_type, void *buf, size_t size);

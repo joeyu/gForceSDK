@@ -9,6 +9,65 @@
 #include <DiscoveryService.h>
 #include "AdapterManager.h"
 #include "dos.h"
+#include "npi_queue.h"
+#include "Thread.h"
+#include "WebSocket.h"
+
+class WebSocketClientRunnable : public Runnable {
+public:
+	WebSocketClientRunnable(const WCHAR *server, INTERNET_PORT port) : m_server(server), m_port(port) {}
+	~WebSocketClientRunnable();
+	void Run();
+	int PutData(char *data_buf, size_t size);
+private:
+	struct Data {
+		size_t	size;
+		char	buf[1];
+	};
+
+	GForceQueue<Data *, 256>	m_sendQueue; // buffer of data to be sent.
+	WebSocket			m_webSocket;
+	const WCHAR			*m_server;
+	INTERNET_PORT			m_port;
+};
+
+WebSocketClientRunnable::~WebSocketClientRunnable() {
+	m_webSocket.Close();
+}
+
+int WebSocketClientRunnable::PutData(char *data_buf, size_t length) {
+	Data * data = (Data *)new char[(long)&(((Data *)0)->buf) + length];
+	if (NULL == data) {
+		return -1;
+	}
+	memcpy(data->buf, data_buf, length);
+	m_sendQueue.Push(data);
+
+	return 0;
+}
+
+void WebSocketClientRunnable::Run() {
+
+	// Signal the server of the client role.
+	const char source_role[] = "source";
+	if (0 != m_webSocket.Open(m_server, m_port)) {
+		printf("[ERROR] WebSocket::Open\n");
+		return;
+		if (0 != m_webSocket.Send(WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE, (void *)source_role, sizeof(source_role))) {
+			printf("[ERROR] WebSocket::Send\n");
+			return;
+		}
+	}
+	while (true) {
+		Data *data = m_sendQueue.Pop();
+		if (0 != m_webSocket.Send(WINHTTP_WEB_SOCKET_BINARY_MESSAGE_BUFFER_TYPE, data->buf, data->size)) {
+			printf("[ERROR] WebSocket::Send\n");
+			return;
+		}
+		delete data; // this is what the consumer must do
+	}
+}
+
 
 //using namespace System;
 #define EMGDATA_PACKAGEID_INDEX		8
@@ -27,6 +86,10 @@ FILE* g_file = NULL;
 size_t g_SingleFileRecordedBytes;
 bool g_PrintSingleFileRecordedBytesPreface;
 
+WCHAR *g_server = L"127.0.0.1";
+unsigned short g_port = 8888;
+WebSocketClientRunnable g_webSocketClientRunnalbe(g_server, g_port);
+
 static void ProcessGforceData(OYM_PUINT8 pData, OYM_UINT16 length);
 static void PrintSingleFileRecordedBytes(int n);
 
@@ -43,8 +106,16 @@ int _tmain(int charc, char* argv[]) {
 	cout<<"*                                                               *\n";
 	cout<<"*****************************************************************\n";
 #endif
-	cout << "===== gForce raw data capturing utility Ver0.1 =====\n\n"
-	     << "Please enter COM number:";
+	CThread webSocketClientThread(&g_webSocketClientRunnalbe);
+
+	cout << "===== gForce raw data capturing utility Ver0.1 =====\n\n";
+	printf("After making sure the WebSocket Server has been started at %s:%d, press any key to continue. \n", g_server, g_port);
+	_getch();
+	if (0 != webSocketClientThread.Start()) {
+		return -1;
+	}
+
+	cout << "Please enter COM number:";
 	scanf_s("%u", &comNum);
 	OYM_AdapterManager* am = new OYM_AdapterManager();
 	status = am->Init(comNum);
@@ -115,6 +186,9 @@ int _tmain(int charc, char* argv[]) {
 		}
 	} while (!exit);
 
+	webSocketClientThread.Terminate(0);
+	webSocketClientThread.Join(-1);
+
 	CloseHandle(g_DataAvailable);
 	return 0;
 }
@@ -167,6 +241,8 @@ void ProcessGforceData(OYM_PUINT8 data, OYM_UINT16 length)
 	}
 #endif
 
+	g_webSocketClientRunnalbe.PutData((char *)&data[EMGDATA_INDEX], length - EMGDATA_INDEX);
+
 	EnterCriticalSection(&g_CriticalSection);
 	if (g_file)
 	{
@@ -192,3 +268,6 @@ void PrintSingleFileRecordedBytes(int n) {
 	printf("\b\b\b\b\b\b\b\b%8d", n);
 	g_PrintSingleFileRecordedBytesPreface = false;
 }
+
+
+
