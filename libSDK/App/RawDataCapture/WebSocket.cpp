@@ -21,13 +21,8 @@ int WebSocket::Open(const WCHAR *server, INTERNET_PORT port)
 	DWORD dwError = ERROR_SUCCESS;
 	BOOL fStatus = FALSE;
 	HINTERNET hRequestHandle = NULL;
-	HINTERNET hWebSocketHandle = NULL;
 
-
-	//
 	// Create session, connection and request handles.
-	//
-
 	m_session = WinHttpOpen(
 		m_userAgent,
 		WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
@@ -108,7 +103,7 @@ int WebSocket::Open(const WCHAR *server, INTERNET_PORT port)
 	//
 
 	m_webSocket = WinHttpWebSocketCompleteUpgrade(hRequestHandle, NULL);
-	if (hWebSocketHandle == NULL)
+	if (m_webSocket == NULL)
 	{
 		dwError = GetLastError();
 		goto quit;
@@ -121,7 +116,7 @@ int WebSocket::Open(const WCHAR *server, INTERNET_PORT port)
 	WinHttpCloseHandle(hRequestHandle);
 	hRequestHandle = NULL;
 
-	wprintf(L"Succesfully upgraded to websocket protocol\n");
+	//wprintf(L"Succesfully upgraded to websocket protocol\n");
 
 	return 0;
 quit:

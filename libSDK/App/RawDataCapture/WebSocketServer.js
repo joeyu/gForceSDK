@@ -19,15 +19,15 @@ wss.on('listening', function () {
                     }
                 });
             }
-        } else {
+        } else { // string
             //console.log('Received: %s\n', data);
             if (data === 'source') {
                 ws.role = 'source';
-                console.log("[INFO] Client indicated it as source.");
+                console.log("[INFO] Client indicated as a source.");
             }
             else if (data === 'sink') {
                 ws.role = 'sink';
-                console.log("[INFO] Client indicated it as sink.");
+                console.log("[INFO] Client indicated as a sink.");
             }
             else {
                 console.log("[WARNING] Unkown role %s.", data)

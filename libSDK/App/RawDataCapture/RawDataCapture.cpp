@@ -109,9 +109,9 @@ int _tmain(int charc, char* argv[]) {
 	CThread webSocketClientThread(&g_webSocketClientRunnalbe);
 
 	cout << "===== gForce raw data capturing utility Ver0.1 =====\n\n";
-	printf("After making sure the WebSocket Server has been started at %s:%d, press any key to continue. \n", g_server, g_port);
+	wprintf(L"After making sure the WebSocket Server has been started at %s:%d, press any key to continue. \n", g_server, g_port);
 	_getch();
-	if (0 != webSocketClientThread.Start()) {
+	if (!webSocketClientThread.Start()) {
 		return -1;
 	}
 
