@@ -10,87 +10,72 @@
             const url = "ws://127.0.0.1:" + port + "/RawData";
             const ws = new WebSocket(url);
             const rawDataSize = 128;
-            var rawData = [];
+            const channelCount = 8;
+            const rawDataSizePerChannel = rawDataSize / channelCount;
+            const maxSizePerChannel = rawDataSizePerChannel * 128;
+            const rawData = Array.apply(null, Array(channelCount)).map(() => []);
 
-            const canvas = document.getElementById('chart');
-            const width = canvas.scrollWidth;
-            const height = canvas.scrollHeight;
-            console.log("canvas width = %d, height = %d", width, height);
-            var ctx = canvas.getContext('2d');
+            const ctxArray = new Array(channelCount);
+            const canvasArray = Array.apply(null, Array(channelCount)).map(function (e, i) {
+                var canvas = document.getElementById('chart' + i);
+                var ctx = canvas.getContext('2d');
+                ctx.strokeStyle = '#FFFFFF';
+                ctxArray[i] = ctx;
+                var r = canvas.getBoundingClientRect();
+                canvas.width = r.width * 2;
+                canvas.height = r.height * 2;
+                console.log("canvas pixel buffer width = %d, height = %d", canvas.width, canvas.height);
+                return canvas;
+            });
+
             function drawChart(data) {
-                const step = 3;
-                ctx.clearRect(0, 0, width, height);
-                ctx.beginPath();
-                ctx.moveTo(0, height - data[0]);
-                for (var x = 1, i = 1; x < width && i < data.length; x += step, i++) {
-                    ctx.lineTo(x, height - data[i]);
-                }
-                ctx.stroke();
+                const step = 1;
+                ctxArray.forEach(function (ctx, i) {
+                    const width = ctx.canvas.width;
+                    const height = ctx.canvas.height;
+                    var x = step;
+                    ctx.strokeStyle = '#00FFFF';
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.beginPath();
+                    console.log(data[i][0]);
+                    ctx.moveTo(0, height - data[i][0] / 256 * height);
+                    for (let j = 1; j < data[i].length; j++) {
+                        if (x > width) {
+                            break;
+                        }
+                        ctx.lineTo(x, height - data[i][j] / 256 * height);
+                        x += step;
+                    }
+                    ctx.stroke();
+
+                });
             }
-
-            //var chart = new CanvasJS.Chart("chartContainer", {
-            //    zoomEnabled: true,
-            //    title: {
-            //        text: "gForce Raw Data channel[0]"
-            //    },
-            //    //animationEnabled: true,
-            //    //axisX: {
-            //    //    labelAngle: 30
-            //    //},
-
-            //    //axisY: {
-            //    //    includeZero: 0
-            //    //},
-
-            //    data: [
-            //        {
-            //            type: "line",
-            //            dataPoints: []
-            //        }
-            //    ]
-            //});
-
 
             var cnt = 0;
             ws.onmessage = function (evt) {
-                //$("#received").append(evt.data + "<br/>");
                 //console.log("typeof = %s, size = %s", typeof evt.data, evt.data.size);
+
                 // data should a blob of 128 bytes
                 var blob = evt.data;
                 if (blob.size !== rawDataSize) {
                     console.log("[WARNING] The size of the received data is not %d[%d]", rawDataSize, blob.size);
                 }
 
+                // Read from the blob and resemble the data
                 var fileReader = new FileReader();
                 fileReader.onload = function () {
                     var uint8View = new Uint8Array(this.result);
-                    //for (var i = 0; i < 8; i++) {
-                    //    var singleChannel = [];
-                    //    for (var j = 0; j < rawDataSize / 8; j++) {
-                    //        singleChannel[j] = uint8View[i + j * 8];
-                    //    }
-                    //    rawData[i] = singleChannel;
-                    //}
-                    //for (var j = 0; j < rawDataSize / 8; j++) {
-                    //    //console.log("data: %d", uint8View[j * 8]);
-                    //    if (chart.options.data[0].dataPoints.length == 800) {
-                    //        chart.options.data[0].dataPoints.shift();
-                    //    }
-                    //    chart.options.data[0].dataPoints.push({ y: uint8View[j * 8] });
-                    //}
-
-                    //console.log("count data: %d, %d", ++cnt, uint8View[0]);
-                    //if (chart.options.data[0].dataPoints.length == 400) {
-                    //    chart.options.data[0].dataPoints.shift();
-                    //}
-                    //chart.options.data[0].dataPoints.push({ y: uint8View[0] });
-
-                    rawData.push(uint8View[0]);
-                    if (rawData.length > 80) {
-                        rawData.shift();
+                    for (var i = 0; i < channelCount; i++) {
+                        var singleChannel = [];
+                        for (var j = 0; j < rawDataSizePerChannel; j++) {
+                            rawData[i].push(uint8View[i + j * 8]);
+                        }
+                        if (rawData[i].length > maxSizePerChannel) {
+                            rawData[i].splice(0, rawDataSizePerChannel);
+                        }
                     }
+                    //console.log("count data: %d, %d", ++cnt, uint8View[0]);
                     drawChart(rawData);
-                    //if (cnt % 41 === 0) chart.render();
                 };
                 fileReader.readAsArrayBuffer(blob);
             };
@@ -98,11 +83,10 @@
             ws.onopen = function (evt) {
                 $("#url").html(url);
                 $("#status").html("Connected to " + url);
+
+                // Indicate as a data sink.
                 var data = 'sink';
                 ws.send(data);
-                //$("#sent").append(data + '</br>');
-                //data = new Blob([1, 2, 3, 4, 5], { type: 'Application/integer' });
-                //ws.send(data);
             };
 
             ws.onclose = function () {
@@ -129,16 +113,29 @@
             font-size: 1em;
         }
 
+        .chart {
+            resize: none;
+            background: black; 
+            color: blue; 
+            height: 128px; 
+            width: 48%;
         }
     </style>
 </head>
 <body>
     <div>
         <h4> Status: <span id="status" /> </h4>
-        <h4> Sent: <span id="sent" /> </h4>
-        <h4> Received: <span id="received" /> </h4>
-        <div id="chartContainer" style="height: 300px; width: 100%;"> </div>
-        <canvas id="chart" style="height: 300px; width: 100%;"> </canvas>
+
+        <div id="chartContainer">
+            <canvas class="chart" id="chart0"> </canvas>
+            <canvas class="chart" id="chart1"> </canvas>
+            <canvas class="chart" id="chart2"> </canvas>
+            <canvas class="chart" id="chart3"> </canvas>
+            <canvas class="chart" id="chart4"> </canvas>
+            <canvas class="chart" id="chart5"> </canvas>
+            <canvas class="chart" id="chart6"> </canvas>
+            <canvas class="chart" id="chart7"> </canvas>
+        </div>
     </div>
 </body>
 </html>
