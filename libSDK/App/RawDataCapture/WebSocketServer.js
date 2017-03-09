@@ -6,7 +6,7 @@ const wss = new WebSocket.Server({ port: listen_port });
 wss.on('listening', function () {
     console.log("[INFO] Server listen at %d\n", listen_port);
 }).on('connection', function (ws) {
-    console.log("[INFO] Client connected! binaryType = %s\n", ws.binaryType);
+    //console.log("[INFO] Client connected! binaryType = %s\n", ws.binaryType);
     ws.on('message', function (data, flags) {
         //console.log("[INFO] data: %s, typeof == %s", data, typeof data);
         if (flags.binary) { // raw data

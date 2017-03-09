@@ -28,7 +28,7 @@
                 return canvas;
             });
 
-            function drawChart(data) {
+            function drawChart() {
                 const step = 1;
                 ctxArray.forEach(function (ctx, i) {
                     const width = ctx.canvas.width;
@@ -37,13 +37,13 @@
                     ctx.strokeStyle = '#00FFFF';
                     ctx.clearRect(0, 0, width, height);
                     ctx.beginPath();
-                    console.log(data[i][0]);
-                    ctx.moveTo(0, height - data[i][0] / 256 * height);
-                    for (let j = 1; j < data[i].length; j++) {
+                    console.log(rawData[i][0]);
+                    ctx.moveTo(0, height - rawData[i][0] / 256 * height);
+                    for (let j = 1; j < rawData[i].length; j++) {
                         if (x > width) {
                             break;
                         }
-                        ctx.lineTo(x, height - data[i][j] / 256 * height);
+                        ctx.lineTo(x, height - rawData[i][j] / 256 * height);
                         x += step;
                     }
                     ctx.stroke();
@@ -75,7 +75,7 @@
                         }
                     }
                     //console.log("count data: %d, %d", ++cnt, uint8View[0]);
-                    drawChart(rawData);
+                    window.requestAnimationFrame(drawChart);
                 };
                 fileReader.readAsArrayBuffer(blob);
             };
