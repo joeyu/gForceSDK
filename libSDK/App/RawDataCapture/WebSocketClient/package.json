@@ -1,0 +1,15 @@
+{
+  "name": "gforceinsider",
+  "version": "1.0.0",
+  "description": "The 'gForce Insider' web application is a client program for users to interact with gForce. ",
+  "main": "gForceInsider.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Zhou Yu",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "jquery": "^3.1.1"
+  }
+}
