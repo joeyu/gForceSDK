@@ -85,7 +85,7 @@
                 fileReader.readAsArrayBuffer(blob);
             };
             ws.onopen = function (evt) {
-                $("#status").removeClass("alert-info").addClass("alert-success").html("Connected to " + url + " succussfully!");
+                $("#status").removeClass("alert-info").addClass("alert-success").html("Connected to " + url);
 
                 // Indicate as a data sink.
                 var data = 'sink';
@@ -95,7 +95,7 @@
                 $("#status").removeClass("alert-success").addClass("alert-info").html("Connection to " + url + " closed.");
             };
 
- 
+
         });
     </script>
     <style type="text/css">
@@ -120,9 +120,9 @@
         }*/
         .chart {
             resize: none;
-            background: black; 
-            color: blue; 
-            height: 128px; 
+            background: black;
+            color: blue;
+            height: 128px;
             width: 100%;
         }
     </style>
@@ -131,47 +131,160 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-xs-12">
-                <div class="row">
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart0"> </canvas>
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs">
+                    <li role="presentation" class="active">
+                        <a href="#data" aria-controls="data" role="tab" data-toggle="tab">Data</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">Settings</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#help" aria-controls="help" role="tab" data-toggle="tab">Help</a>
+                    </li>
+                </ul>
+
+                <!-- Tab panes -->
+                <div class="tab-content">
+                    <!-- Tab data -->
+                    <div role="tabpanel" class="tab-pane fade in active" id="data">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-xs-12 col-md-6">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <h2 class="panel-title">Gesture</h2>
+                                        </div>
+                                        <div class="panel-body">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xs-12 col-md-6">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <h2 class="panel-title">Quaternion</h2>
+                                        </div>
+                                        <div class="panel-body">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <h2 class="panel-title">EMG Raw Data</h2>
+                                        </div>
+                                        <div class="panel-body">
+                                            <div class="row">
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart0"> </canvas>
+                                                </div>
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart1"> </canvas>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart2"> </canvas>
+                                                </div>
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart3"> </canvas>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart4"> </canvas>
+                                                </div>
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart5"> </canvas>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart6"> </canvas>
+                                                </div>
+                                                <div class="col-xs-12 col-md-6">
+                                                    <canvas class="chart" id="chart7"> </canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart1"> </canvas>
+
+                    <!-- Tab settings -->
+                    <div role="tabpanel" class="tab-pane fade" id="settings">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-xs-12 col-md-6">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <h2 class="panel-title">Device Information</h2>
+                                        </div>
+                                        <div class="panel-body">
+                                            <ul class="list-group">
+                                                <li class="list-group-item">
+                                                    <h4 class="list-group-item-heading">Device Model</h4>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h4 class="list-group-item-heading">HardWare Revision</h4>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h4 class="list-group-item-heading">Firmware Revision</h4>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xs-12 col-md-6">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <h2 class="panel-title">General Settings</h2>
+                                        </div>
+                                        <div class="panel-body">
+                                            <div class="btn-group">
+                                                <span class="input-group-addon">
+                                                    <input type="checkbox" aria-label="check-raw-data">
+                                                </span>
+                                                <span>Ouput raw data</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12 col-md-6">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-heading">
+                                            <h2 class="panel-title">Firmware Upgrade</h2>
+                                        </div>
+                                        <div class="panel-body">
+                                            <div class="progress">
+                                                <div class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
+                                                    <span class="sr-only">45% Complete</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart2"> </canvas>
+
+                    <!-- Tab help -->
+                    <div role="tabpanel" class="tab-pane fade" id="help">
+
                     </div>
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart3"> </canvas>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart4"> </canvas>
-                    </div>
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart5"> </canvas>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart6"> </canvas>
-                    </div>
-                    <div class="col-xs-12 col-md-6">
-                        <canvas class="chart" id="chart7"> </canvas>
-                    </div>
+
                 </div>
             </div>
         </div>
     </div>
-    <ul class="nav nav-tabs">
-        <li role="presentation" class="active">
-            <a href="#">Raw Data</a>
-        </li>
-        <li role="presentation"><a href="#">Settings</a></li>
-    </ul>
+
     <div id="status" class="alert" role="alert"></div>
+
 </body>
 </html>
