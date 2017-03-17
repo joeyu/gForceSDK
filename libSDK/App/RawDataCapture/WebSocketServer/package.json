@@ -1,0 +1,18 @@
+{
+  "name": "gforce-insider-server",
+  "version": "1.0.0",
+  "description": "gForce Insider Server",
+  "main": "WebSocketServer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "gForce",
+    "WebSocket"
+  ],
+  "author": "Zhou Yu",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^2.2.1"
+  }
+}

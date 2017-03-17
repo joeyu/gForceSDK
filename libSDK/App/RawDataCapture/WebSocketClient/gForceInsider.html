@@ -9,115 +9,8 @@
     <link href="node_modules/bootstrap/dist/css/bootstrap-theme.min.css" rel="stylesheet">
     <script src="node_modules/jquery/dist/jquery.min.js" type="text/javascript"></script>
     <script src="node_modules/bootstrap/dist/js/bootstrap.min.js" type="text/javascript"></script>
-    <script type="text/javascript">
-        $(document).ready(function () {
-            const port = "8888";
-            const url = "ws://127.0.0.1:" + port + "/RawData";
-            const ws = new WebSocket(url);
-            const rawDataSize = 128;
-            const channelCount = 8;
-            const rawDataSizePerChannel = rawDataSize / channelCount;
-            const maxSizePerChannel = rawDataSizePerChannel * 128;
-            const rawData = Array.apply(null, Array(channelCount)).map(() => []);
-
-            const ctxArray = new Array(channelCount);
-            const canvasArray = Array.apply(null, Array(channelCount)).map(function (e, i) {
-                var canvas = document.getElementById('chart' + i);
-                var ctx = canvas.getContext('2d');
-                ctx.strokeStyle = '#FFFFFF';
-                ctxArray[i] = ctx;
-                var r = canvas.getBoundingClientRect();
-                canvas.width = r.width * 2;
-                canvas.height = r.height * 2;
-                console.log("canvas pixel buffer width = %d, height = %d", canvas.width, canvas.height);
-                return canvas;
-            });
-
-            function drawChart() {
-                const step = 1;
-                ctxArray.forEach(function (ctx, i) {
-                    const width = ctx.canvas.width;
-                    const height = ctx.canvas.height;
-                    var x = step;
-                    ctx.strokeStyle = '#00FFFF';
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.beginPath();
-                    console.log(rawData[i][0]);
-                    ctx.moveTo(0, height - rawData[i][0] / 256 * height);
-                    for (let j = 1; j < rawData[i].length; j++) {
-                        if (x > width) {
-                            break;
-                        }
-                        ctx.lineTo(x, height - rawData[i][j] / 256 * height);
-                        x += step;
-                    }
-                    ctx.stroke();
-
-                });
-            }
-
-            var cnt = 0;
-            ws.onmessage = function (evt) {
-                //console.log("typeof = %s, size = %s", typeof evt.data, evt.data.size);
-
-                // data should a blob of 128 bytes
-                var blob = evt.data;
-                if (blob.size !== rawDataSize) {
-                    console.log("[WARNING] The size of the received data is not %d[%d]", rawDataSize, blob.size);
-                }
-
-                // Read from the blob and resemble the data
-                var fileReader = new FileReader();
-                fileReader.onload = function () {
-                    var uint8View = new Uint8Array(this.result);
-                    for (var i = 0; i < channelCount; i++) {
-                        var singleChannel = [];
-                        for (var j = 0; j < rawDataSizePerChannel; j++) {
-                            rawData[i].push(uint8View[i + j * 8]);
-                        }
-                        if (rawData[i].length > maxSizePerChannel) {
-                            rawData[i].splice(0, rawDataSizePerChannel);
-                        }
-                    }
-                    //console.log("count data: %d, %d", ++cnt, uint8View[0]);
-                    window.requestAnimationFrame(drawChart);
-                };
-                fileReader.readAsArrayBuffer(blob);
-            };
-            ws.onopen = function (evt) {
-                $("#status").removeClass("alert-info").addClass("alert-success").html("Connected to " + url);
-
-                // Indicate as a data sink.
-                var data = 'sink';
-                ws.send(data);
-            };
-            ws.onclose = function () {
-                $("#status").removeClass("alert-success").addClass("alert-info").html("Connection to " + url + " closed.");
-            };
-
-
-        });
-    </script>
+    <script src="gForceInsider.js" type="text/javascript"></script>
     <style type="text/css">
-        /*body {
-            font-family: Trebuchet MS;
-            font-size: 0.7em;
-        }
-
-        #sent {
-            font-family: Consolas;
-            font-size: 1em;
-        }*/
-
-
-        /*#status {
-            font-family: Consolas;
-            font-size: 1em;
-        }*/
-
-        /*.nav {
-            width: 100%;
-        }*/
         .chart {
             resize: none;
             background: black;
@@ -129,6 +22,20 @@
 </head>
 <body>
     <div class="container-fluid">
+        <div class="row">
+            <div class="col-xs-12 col-md-6">
+                <div class="input-group">
+                    <span class="input-group-addon" style="padding-right: 1px">ws://</span>
+                    <input type="text" style="padding-left: 1px" class="form-control" value="localhost:8888/RawData" placeholder="Enter the URI of gForce service">
+                    <span class="input-group-btn">
+                        <button id="btn-go" class="btn btn-default" type="button">Go!</button>
+                    </span>
+                </div>
+            </div>
+            <div class="col-xs-12 col-md-6">
+                <span id="status" class="alert" role="alert"></span>
+            </div>
+        </div>
         <div class="row">
             <div class="col-xs-12">
                 <!-- Nav tabs -->
@@ -149,64 +56,101 @@
                     <!-- Tab data -->
                     <div role="tabpanel" class="tab-pane fade in active" id="data">
                         <div class="container-fluid">
+                            <!-- Gesture -->
                             <div class="row">
-                                <div class="col-xs-12 col-md-6">
-                                    <div class="panel panel-primary">
-                                        <div class="panel-heading">
-                                            <h2 class="panel-title">Gesture</h2>
-                                        </div>
-                                        <div class="panel-body">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-xs-12 col-md-6">
-                                    <div class="panel panel-primary">
-                                        <div class="panel-heading">
-                                            <h2 class="panel-title">Quaternion</h2>
-                                        </div>
-                                        <div class="panel-body">
-                                        </div>
+                                <div class="col-xs-12">
+                                    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#gesture" aria-expanded="false" aria-controls="gesture">
+                                        Gesture
+                                    </button>
+                                    <div class="collapse" id="gesture">
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Orientation -->
                             <div class="row">
                                 <div class="col-xs-12">
-                                    <div class="panel panel-primary">
-                                        <div class="panel-heading">
-                                            <h2 class="panel-title">EMG Raw Data</h2>
+                                    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#orientation" aria-expanded="false" aria-controls="orientation">
+                                        Orientation
+                                    </button>
+                                    <div class="collapse" id="orientation">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Accelerometer -->
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#accelerometer" aria-expanded="false" aria-controls="accelerometer">
+                                        Accelerometer
+                                    </button>
+                                    <div class="collapse" id="accelerometer">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gyroscope -->
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#gyroscope" aria-expanded="false" aria-controls="gyroscope">
+                                        Gyroscope
+                                    </button>
+                                    <div class="collapse" id="gyroscope">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- EMG Raw Data -->
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#emgRawData" aria-expanded="false" aria-controls="emgRawData">
+                                        EMG Raw Data
+                                    </button>
+                                    <div class="collapse" id="emgRawData">
+                                        <!-- Save to file -->
+                                        <div class="row">
+                                            <div class="col-xs-12 col-md-6">
+                                                <div class="input-group">
+                                                    <input type="text" id="input-emgrawdatafilename" class="form-control" placeholder="Enter the name of the file to store the EMG raw data">
+                                                    <span class="input-group-btn">
+                                                        <button id="btn-emgrawdatarecord" class="btn btn-default" type="button" disabled="true">
+                                                            <span class="glyphicon glyphicon-record" aria-hidden="true"></span>
+                                                        </button>
+                                                    </span>
+                                               </div>
+                                            </div>
                                         </div>
-                                        <div class="panel-body">
-                                            <div class="row">
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart0"> </canvas>
-                                                </div>
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart1"> </canvas>
-                                                </div>
+                                        <!-- Raw data -->
+                                        <div class="row">
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart0"> </canvas>
                                             </div>
-                                            <div class="row">
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart2"> </canvas>
-                                                </div>
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart3"> </canvas>
-                                                </div>
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart1"> </canvas>
                                             </div>
-                                            <div class="row">
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart4"> </canvas>
-                                                </div>
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart5"> </canvas>
-                                                </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart2"> </canvas>
                                             </div>
-                                            <div class="row">
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart6"> </canvas>
-                                                </div>
-                                                <div class="col-xs-12 col-md-6">
-                                                    <canvas class="chart" id="chart7"> </canvas>
-                                                </div>
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart3"> </canvas>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart4"> </canvas>
+                                            </div>
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart5"> </canvas>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart6"> </canvas>
+                                            </div>
+                                            <div class="col-xs-12 col-md-6">
+                                                <canvas class="chart" id="chart7"> </canvas>
                                             </div>
                                         </div>
                                     </div>
@@ -245,12 +189,8 @@
                                             <h2 class="panel-title">General Settings</h2>
                                         </div>
                                         <div class="panel-body">
-                                            <div class="btn-group">
-                                                <span class="input-group-addon">
-                                                    <input type="checkbox" aria-label="check-raw-data">
-                                                </span>
-                                                <span>Ouput raw data</span>
-                                            </div>
+                                            <input type="checkbox" id="cb-output-" aria-label="Middle Align">
+                                            <label for="cb-output-raw-data" class="col-xs-4 control-label">Ouput raw data</label>
                                         </div>
                                     </div>
                                 </div>
@@ -284,7 +224,6 @@
         </div>
     </div>
 
-    <div id="status" class="alert" role="alert"></div>
 
 </body>
 </html>
