@@ -12,10 +12,12 @@ $(document).ready(function () {
         var ctx = canvas.getContext('2d');
         ctx.strokeStyle = '#FFFFFF';
         emgCanvasCtx[i] = ctx;
-        var r = canvas.getBoundingClientRect();
-        canvas.width = r.width * 2;
-        canvas.height = r.height * 2;
-        //console.log("canvas pixel buffer width = %d, height = %d", canvas.width, canvas.height);
+        //var r = canvas.getBoundingClientRect();
+        //canvas.width = r.width * 2;
+        //canvas.height = r.height * 2;
+        canvas.width *= 4;
+        canvas.height *= 4;
+        console.log("canvas pixel buffer width = %d, height = %d", canvas.width, canvas.height);
         return canvas;
     });
 
@@ -45,7 +47,6 @@ $(document).ready(function () {
                 x += step;
             }
             ctx.stroke();
-        });
     }
 
     function drawChart() {
